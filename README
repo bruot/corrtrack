@@ -1,0 +1,69 @@
+CorrTrack particle tracking software
+
+Copyright 2016, 2017 Nicolas Bruot (https://www.bruot.org/hp/)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+CorrTrack is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+CorrTrack is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with CorrTrack.  If not, see <http://www.gnu.org/licenses/>.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+For a description of what CorrTrack is and a quick guide on how to use it, see
+
+https://github.com/bruot/corrtrack/wiki
+
+Binaries of CorrTrack for Windows are also available on that page.  Please report any issues on the project pages at Github:
+
+https://github.com/bruot/corrtrack/issues
+
+If you want to compile the program, see below.
+
+
+###############################
+# QUICK STEPS FOR COMPILATION #
+###############################
+
+CorrTrack is compatible with many Linux distributions, Windows, and probably Mac.  To compile it, the steps are: install Qt Creator and the Qt, Boost, GSL and libtiff libraries (binaries and sources); open the .pro file with Qt Creator and compile the project.  You may need to fix some library linking issues by editing the .pro file.
+
+
+#################################################
+# A WINDOWS COMPILATION ENVIRONEMENT THAT WORKS #
+#################################################
+
+For Windows, since some of the libraries mentionned above are not easy to install, here are quick notes on how to get a compilation environment by downloading already compiled versions of the libraries.
+
+(Tested on Windows 7 and 10, with Qt 5.8.0, Qt Creator 4.2.0. and MSVC 2015)
+
+
+1. Install Qt Open Source at
+
+  https://www.qt.io/download/
+
+During the installation, make sure to select the msvc2015 64 bits compiler (at least).
+
+
+2. Install the following compiled libraries for the Microsoft Visual Studio 2015 compiler.  To do so, download from https://www.bruot.org/hp/libraries/ the .zip files indicated below and unzip the archives to C:\lib\.
+
+  - Boost 1.60 msvc2015_64
+
+  - GSL 1.16 msvc2015_64
+
+  - libtiff 4.0.7 msvc2015_64
+
+  - zlib 1.2.8 msvc2015_64
+
+
+3. Open with Qt Creator the .pro file.  Qt will ask how you want to compile the project.  Choose Desktop Qt 5.8.0 MSVC2015_64bit (or similar Qt version).
+
+
+4. Once the Qt project is open, click on the little computer in one of the toolbars to select the "Release" configuration of the program.  Then click the little hammer button to compile the program.  If successful, this creates an executable in build-corrtrack-Desktop_Qt_5_8_0_MSVC2015_64bit-Release\release.  Before running the program, copy zlib.dll from C:\lib\msvc2015_64\lib\zlib and tiff.dll from C:\lib\msvc2015_64\lib\tiff to that folder.
