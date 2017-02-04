@@ -36,12 +36,12 @@ CorrFilterDialog::CorrFilterDialog(const unsigned int filterWindowWidth,
                                    const QString newLastFolder,
                                    QWidget *parent)
     : OKCancelDialog(parent),
-      lastFilterFolder{newLastFilterFolder},
-      lastFolder{newLastFolder},
       filterWindowWidthLE{new QLineEdit(this)},
       filterWindowHeightLE{new QLineEdit(this)},
       filterFileLE{new QLineEdit(this)},
-      fitRadiusLE{new QLineEdit(this)}
+      fitRadiusLE{new QLineEdit(this)},
+      lastFilterFolder{newLastFilterFolder},
+      lastFolder{newLastFolder}
 {
     setWindowTitle("Correlation Filter");
 
