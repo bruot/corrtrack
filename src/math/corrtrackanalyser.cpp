@@ -177,8 +177,6 @@ std::vector<ImageD*>* CorrTrackAnalyser::testCorrelation()
     //
     // The frame must already be selected.
 
-    // TODO: possibly dangling pointer returned
-
     copyFilter();
 
     std::vector<ImageD*> *correlationMaps = new std::vector<ImageD*>;
