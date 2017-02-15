@@ -83,6 +83,9 @@ public:
     void extractTiff(const size_t frameIndex) const;
     void extractTiffs();
 
+    void getIntensityMinMax(uint16_t& min, uint16_t& max) const;
+    void getFrameIntensityMinMax(size_t frameIndex,
+                                 uint16_t& min, uint16_t& max) const;
     uint8_t* frameData8(const size_t i,
                         const unsigned int customBitDepth) const;
     uint8_t* frameData8(const size_t i,
@@ -109,6 +112,5 @@ public:
     std::vector<Frame<uint8_t>> frames8;
     std::vector<Frame<uint16_t>> frames16;
     std::vector<unsigned long> timestamps;
-    size_t currExtractTiffsIndex;
-    size_t loadCurrIndex;
+    mutable size_t currIndex;
 };

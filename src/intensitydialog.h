@@ -26,7 +26,13 @@
 #include <QLineEdit>
 #include <QWidget>
 #include <QRadioButton>
+#include <QToolButton>
+#include <QThread>
 #include "okcanceldialog.h"
+#include "corrtrackwindow.h"
+#include "movie/movie.h"
+#include "progresswindow.h"
+#include "movieintensityminmaxworker.h"
 
 
 class IntensityDialog : public OKCancelDialog
@@ -34,26 +40,45 @@ class IntensityDialog : public OKCancelDialog
     Q_OBJECT
 
 private:
-    QRadioButton *bitDepthRB;
-    QRadioButton *minMaxIntensitiesRB;
-    QWidget *bitDepthWidget;
-    QWidget *minMaxIntensitiesWidget;
-    QLineEdit *bitDepthLE;
-    QLineEdit *intensityMinLE;
-    QLineEdit *intensityMaxLE;
+    size_t frameIndex;
+    Movie* movie;
 
+    QRadioButton *minMaxRB;
+    QRadioButton *autoVarRB;
+    //
+    QWidget *minMaxWidget;
+    QLineEdit *minLE;
+    QLineEdit *maxLE;
+    QLineEdit *bitDepthLE;
+    QToolButton *bitDepthBtn;
+    QToolButton *autoFrameBtn;
+    QToolButton *autoMovieBtn;
+
+    QThread* taskThread;
+    MovieIntensityMinMaxWorker* movieIntensityMinMaxWorker;
+    ProgressWindow* progressWindow;
+
+    uint16_t movieMin;
+    uint16_t movieMax;
+
+    bool isMinMaxBitDepth() const;
 
 private slots:
     void ok() override;
     void updateIntensityWidgets();
+    void setBitDepthMinMax();
+    void setFrameMinMax();
+    void setMovieMinMax();
+    void onGetIntensityMinMaxFinish();
 
 public:
-    explicit IntensityDialog(const bool bitDepthSet,
-                             const unsigned int bitDepth,
-                             const unsigned long intensityMin,
-                             const unsigned long intensityMax,
+    explicit IntensityDialog(CorrTrackWindow::IntensityMode intensityMode,
+                             const uint16_t intensityMin,
+                             const uint16_t intensityMax,
+                             Movie* movie,
+                             size_t frameIndex,
                              QWidget* parent = 0);
-    bool getBitDepthSet() const;
+    CorrTrackWindow::IntensityMode getIntensityMode() const;
     unsigned int getBitDepth() const;
     unsigned long getIntensityMin() const;
     unsigned long getIntensityMax() const;

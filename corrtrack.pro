@@ -102,6 +102,7 @@ SOURCES += \
     corrfilterdialog.cpp \
     okcanceldialog.cpp \
     movie/base/frame.cpp \
+    math/math.cpp \
     math/corrfilter.cpp \
     math/corrtrackanalyser.cpp \
     math/point.cpp \
@@ -109,6 +110,7 @@ SOURCES += \
     math/pointd.cpp \
     io/exceptions/ioexception.cpp \
     movie/movie.cpp \
+    movieintensityminmaxworker.cpp \
     noscrollqgraphicsview.cpp \
     analyseworker.cpp \
     progresswindow.cpp \
@@ -124,6 +126,7 @@ HEADERS += \
     corrfilterdialog.h \
     okcanceldialog.h \
     movie/base/frame.h \
+    math/math.h \
     math/corrfilter.h \
     math/corrtrackanalyser.h \
     math/point.h \
@@ -131,6 +134,7 @@ HEADERS += \
     math/pointd.h \
     io/exceptions/ioexception.h \
     movie/movie.h \
+    movieintensityminmaxworker.h \
     noscrollqgraphicsview.h \
     analyseworker.h \
     progresswindow.h \

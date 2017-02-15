@@ -52,12 +52,19 @@ class CorrTrackWindow : public QMainWindow
 {
     Q_OBJECT
 
+public:
+    enum class IntensityMode {
+        BitDepth,
+        MinMax,
+        AutoVariable,
+    };
+
 private:
     bool movieIsSet;
-    bool bitDepthSet;
+    IntensityMode intensityMode;
     unsigned int bitDepth;
-    unsigned long intensityMin;
-    unsigned long intensityMax;
+    uint16_t intensityMin;
+    uint16_t intensityMax;
     int zoomIndex;
     QString filterFile;
     double framerate;
@@ -134,7 +141,6 @@ private:
     void updateFrameDisplay();
     unsigned int frameCoordinate(const unsigned int coordinate) const;
     unsigned int zoomedCoordinate(const unsigned int coordinate) const;
-    int ipow(const int base, const int exp) const;
 
 private slots:
     // File

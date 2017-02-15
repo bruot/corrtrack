@@ -50,6 +50,7 @@
 #include "intensitydialog.h"
 #include "zoomdialog.h"
 #include "corrfilterdialog.h"
+#include "math/math.h"
 #include "math/corrfilter.h"
 #include "math/point.h"
 #include "movie/base/frame.h"
@@ -68,7 +69,7 @@ using namespace constants;
 CorrTrackWindow::CorrTrackWindow(QWidget *parent)
     : QMainWindow(parent),
       movieIsSet{false},
-      bitDepthSet{true},
+      intensityMode{IntensityMode::BitDepth},
       bitDepth{8},
       intensityMin{0},
       intensityMax{255},
@@ -193,9 +194,9 @@ unsigned int CorrTrackWindow::frameCoordinate(const unsigned int coordinate) con
 
     int result;
     if (zoomIndex > 0)
-        result = coordinate / ipow(2, zoomIndex);
+        result = coordinate / math::ipow(2, zoomIndex);
     else
-        result = coordinate * ipow(2, - zoomIndex);
+        result = coordinate * math::ipow(2, - zoomIndex);
 
     return (unsigned int) result;
 }
@@ -209,32 +210,11 @@ unsigned int CorrTrackWindow::zoomedCoordinate(const unsigned int coordinate) co
 
     int result;
     if (zoomIndex > 0)
-        result = coordinate * ipow(2, zoomIndex);
+        result = coordinate * math::ipow(2, zoomIndex);
     else
-        result = coordinate / ipow(2, - zoomIndex);
+        result = coordinate / math::ipow(2, - zoomIndex);
 
     return (unsigned int) result;
-}
-
-int CorrTrackWindow::ipow(int base, int exp) const
-{
-    int result = 1;
-    if (exp >= 0)
-    {
-        while (exp)
-        {
-            if (exp & 1)
-                result *= base;
-            exp >>= 1;
-            base *= base;
-        }
-    }
-    else
-    {
-        result = 0;
-    }
-
-    return result;
 }
 
 bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
@@ -572,11 +552,20 @@ void CorrTrackWindow::updateFrameDisplay()
     if (movieIsSet)
     {
         uint8_t *data;
-        if (bitDepthSet)
+        switch (intensityMode)
+        {
+        case IntensityMode::BitDepth:
             data = analyser->movie->frameData8(currentFrameIndex - 1, bitDepth);
-        else
+            break;
+        case IntensityMode::AutoVariable:
+            analyser->movie->getFrameIntensityMinMax(currentFrameIndex - 1,
+                                                     intensityMin, intensityMax);
+        default: // MinMax, AutoVariable
             data = analyser->movie->frameData8(currentFrameIndex - 1,
                                                intensityMin, intensityMax);
+            break;
+        }
+
         QImage image = QImage(data,
                               analyser->movie->width,
                               analyser->movie->height,
@@ -645,7 +634,8 @@ void CorrTrackWindow::openMovie()
     progressWindow = new ProgressWindow(this);
     progressWindow->setWindowTitle("Opening file...");
     progressWindow->setNStepsPtr(&(analyser->movie->nFrames));
-    progressWindow->setStepPtr(&(analyser->movie->loadCurrIndex));
+    analyser->movie->currIndex = 0;
+    progressWindow->setStepPtr(&(analyser->movie->currIndex));
     progressWindow->open();
 
     openMovieWorker = new OpenMovieWorker(analyser, fileName);
@@ -674,7 +664,7 @@ void CorrTrackWindow::closeMovie()
     currentTime = 0.0;
     currentFrameIndex = 1;
 
-    bitDepthSet = true;
+    intensityMode = IntensityMode::BitDepth;
     bitDepth = 8;
     intensityMin = 0;
     intensityMax = 255;
@@ -753,7 +743,8 @@ void CorrTrackWindow::extractTiffs()
     progressWindow = new ProgressWindow(this);
     progressWindow->setWindowTitle("Extracting TIFF images...");
     progressWindow->setNStepsPtr(&(analyser->movie->nFrames));
-    progressWindow->setStepPtr(&(analyser->movie->currExtractTiffsIndex));
+    analyser->movie->currIndex = 0;
+    progressWindow->setStepPtr(&(analyser->movie->currIndex));
     progressWindow->open();
 
     extractTiffsWorker = new ExtractTiffsWorker(analyser);
@@ -786,7 +777,7 @@ void CorrTrackWindow::onOpenMovieFinished(const QString& fileName,
     {
         movieIsSet = true;
         bitDepth = analyser->movie->bitDepth;
-        bitDepthSet = true;
+        intensityMode = IntensityMode::BitDepth;
         QFileInfo fileInfo = QFileInfo(fileName);
         fileNameLabel->setText(fileInfo.fileName());
         QString message = QString("Loaded %1.").arg(fileInfo.fileName());
@@ -795,6 +786,10 @@ void CorrTrackWindow::onOpenMovieFinished(const QString& fileName,
 
     if (msg.isEmpty())
     {
+        bitDepth = analyser->movie->bitDepth;
+        intensityMin = 0;
+        intensityMax = math::ipow(2, bitDepth) - 1;
+
         initSlider();
         updateZoom();
 
@@ -855,24 +850,27 @@ void CorrTrackWindow::onExtractTiffsFinished(const QString& msg)
 
 void CorrTrackWindow::intensity()
 {
-    bool oldBitDepthSet = bitDepthSet;
+    IntensityMode oldIntensityMode = intensityMode;
     unsigned int oldBitDepth = bitDepth;
     unsigned long oldIntensityMin = intensityMin;
     unsigned long oldIntensityMax = intensityMax;
     // Show intensity settings dialog
-    IntensityDialog *dialog = new IntensityDialog(bitDepthSet, bitDepth,
+    IntensityDialog *dialog = new IntensityDialog(intensityMode,
                                                   intensityMin, intensityMax,
+                                                  analyser->movie,
+                                                  currentFrameIndex - 1,
                                                   this);
     if (dialog->exec() == QDialog::Accepted)
     {
-        bitDepthSet = dialog->getBitDepthSet();
-        bitDepth = dialog->getBitDepth();
+        intensityMode = dialog->getIntensityMode();
+        if (intensityMode == IntensityMode::BitDepth)
+                bitDepth = dialog->getBitDepth();
         intensityMin = dialog->getIntensityMin();
         intensityMax = dialog->getIntensityMax();
     }
 
     // Apply new intensity settings
-    if (bitDepthSet != oldBitDepthSet || bitDepth != oldBitDepth
+    if (intensityMode != oldIntensityMode || bitDepth != oldBitDepth
             || intensityMin != oldIntensityMin
             || intensityMax != oldIntensityMax)
     {

@@ -23,6 +23,8 @@
 #include <sstream>
 #include <vector>
 #include <iostream>
+#include <algorithm>
+#include <limits>
 #include <exception>
 #include <fstream>
 #include <exception>
@@ -76,8 +78,7 @@ Movie::Movie()
       frames8{std::vector<Frame<uint8_t>>()},
       frames16{std::vector<Frame<uint16_t>>()},
       timestamps{std::vector<unsigned long>()},
-      currExtractTiffsIndex{0},
-      loadCurrIndex{0}
+      currIndex{0}
 {
     format = Format::Image;
 }
@@ -108,8 +109,7 @@ void Movie::openMovie(const std::string fileName)
     width = 0;
     height = 0;
     framerate = 0;
-    currExtractTiffsIndex = 0;
-    loadCurrIndex = 0;
+    currIndex = 0;
 
     this->fileName = fileName;
 
@@ -316,11 +316,11 @@ void Movie::loadRawmMovie()
         {
             while (is.read((char*)buffer, bufferSize))
             {
-                if (loadCurrIndex >= framesMeta.size())
+                if (currIndex >= framesMeta.size())
                     throw MovieFormatException(".raw file has more data than expected from .rawm file.");
-                frames8.at(loadCurrIndex).load(buffer, width, height,
-                                                   framesMeta.at(loadCurrIndex).timestamp);
-                ++loadCurrIndex;
+                frames8.at(currIndex).load(buffer, width, height,
+                                                   framesMeta.at(currIndex).timestamp);
+                ++currIndex;
             }
         }
         else // bitsPerSample == 16
@@ -328,13 +328,13 @@ void Movie::loadRawmMovie()
             uint16_t* buffer16 = new uint16_t[width * height];
             while (is.read((char*)buffer, bufferSize))
             {
-                if (loadCurrIndex >= framesMeta.size())
+                if (currIndex >= framesMeta.size())
                     throw MovieFormatException(".raw file has more data than expected from .rawm file.");
                 for (size_t k = 0; k < width * height; k++)
                     buffer16[k] = ((uint16_t) (buffer[2*k+1]) << 8) + (uint16_t) (buffer[2*k]); // Little endian
-                frames16.at(loadCurrIndex).load(buffer16, width, height,
-                                                framesMeta.at(loadCurrIndex).timestamp);
-                ++loadCurrIndex;
+                frames16.at(currIndex).load(buffer16, width, height,
+                                                framesMeta.at(currIndex).timestamp);
+                ++currIndex;
             }
             delete buffer16;
         }
@@ -409,18 +409,18 @@ void Movie::loadXiseqMovie()
         frames8 = std::vector<Frame<uint8_t>>(nFrames);
     else
         frames16 = std::vector<Frame<uint16_t>>(nFrames);
-    for (loadCurrIndex = 0; loadCurrIndex < nFrames; ++loadCurrIndex)
+    for (currIndex = 0; currIndex < nFrames; ++currIndex)
     {
-        frameFullPath = framesDir / framesMeta.at(loadCurrIndex).fileName;
+        frameFullPath = framesDir / framesMeta.at(currIndex).fileName;
         frameFullPath.make_preferred();
 
         std::string pathStr = frameFullPath.string();
-        uint64_t timestamp = framesMeta.at(loadCurrIndex).timestamp;
+        uint64_t timestamp = framesMeta.at(currIndex).timestamp;
         if (bitsPerSample == 8)
         {
             try
             {
-                frames8.at(loadCurrIndex).load(pathStr, pixelFmt, timestamp);
+                frames8.at(currIndex).load(pathStr, pixelFmt, timestamp);
             }
             catch (Frame<uint8_t>::FrameLoadException)
             {
@@ -431,7 +431,7 @@ void Movie::loadXiseqMovie()
         {
             try
             {
-                frames16.at(loadCurrIndex).load(pathStr, pixelFmt, timestamp);
+                frames16.at(currIndex).load(pathStr, pixelFmt, timestamp);
             }
             catch (Frame<uint16_t>::FrameLoadException)
             {
@@ -540,18 +540,18 @@ void Movie::extractTiffs()
     strFmt += std::to_string(intLog10((unsigned int) nFrames));
     strFmt += "d.tif";
 
-    for (currExtractTiffsIndex = 0;
-         currExtractTiffsIndex < nFrames;
-         ++currExtractTiffsIndex)
+    for (currIndex = 0;
+         currIndex < nFrames;
+         ++currIndex)
     {
         boost::format baseNameFmt(strFmt);
-        baseNameFmt % (currExtractTiffsIndex + 1);
+        baseNameFmt % (currIndex + 1);
         fs::path tifPath = basePath / baseNameFmt.str();
 
         if (bitsPerSample == 8)
-            frames8.at(currExtractTiffsIndex).save(tifPath.string());
+            frames8.at(currIndex).save(tifPath.string());
         else
-            frames16.at(currExtractTiffsIndex).save(tifPath.string());
+            frames16.at(currIndex).save(tifPath.string());
     }
 }
 
@@ -566,6 +566,39 @@ unsigned int Movie::intLog10(unsigned int value) const
     }
     return power;
 }
+
+
+void Movie::getFrameIntensityMinMax(size_t frameIndex,
+                                    uint16_t& min, uint16_t& max) const
+{
+    if (bitsPerSample == 8)
+    {
+        uint8_t* pixelsData = frames8.at(frameIndex).pixelsData;
+        min = *std::min_element(pixelsData, pixelsData + width * height);
+        max = *std::max_element(pixelsData, pixelsData + width * height);
+    }
+    else
+    {
+        uint16_t* pixelsData = frames16.at(frameIndex).pixelsData;
+        min = *std::min_element(pixelsData, pixelsData + width * height);
+        max = *std::max_element(pixelsData, pixelsData + width * height);
+    }
+}
+
+void Movie::getIntensityMinMax(uint16_t& min, uint16_t& max) const
+{
+    min = std::numeric_limits<uint16_t>::max();
+    max = std::numeric_limits<uint16_t>::min();
+    uint16_t currMin;
+    uint16_t currMax;
+    for (currIndex = 0; currIndex < nFrames; ++currIndex)
+    {
+        getFrameIntensityMinMax(currIndex, currMin, currMax);
+        if (min > currMin) min = currMin;
+        if (max < currMax) max = currMax;
+    }
+}
+
 
 uint8_t* Movie::frameData8(const size_t i,
                            const unsigned int customBitDepth) const
@@ -610,26 +643,22 @@ uint8_t* Movie::frameData8(const size_t i,
     if (bitsPerSample == 8)
     {
         uint8_t* data8 = frames8.at(i).pixelsData;
-        // Data type needs to hold 256 * uint8_t. Therefore, use uint16_t.
-        uint16_t u16MinVal = (uint16_t) minValue;
-        uint16_t u16MaxVal = (uint16_t) maxValue;
-        uint16_t amplitude = u16MaxVal - u16MinVal;
+        uint8_t amplitude = maxValue - minValue;
         for (unsigned int k = 0; k < width * height; k++)
         {
-            uint16_t val = 256 * (data8[k] - u16MinVal) / amplitude;
+            // Data type needs to hold 255 * uint8_t. Therefore, use uint16_t.
+            uint16_t val = (uint16_t) 255 * (data8[k] - minValue) / amplitude;
             data[k] = (uint8_t) (val);
         }
     }
     else // bitsPerSample = 16
     {
         uint16_t* data16 = frames16.at(i).pixelsData;
-        // Data type needs to hold 256 * uint16_t. Therefore, use uint32_t.
-        uint32_t u32MinVal = (uint32_t) minValue;
-        uint32_t u32MaxVal = (uint32_t) maxValue;
-        uint32_t amplitude = u32MaxVal - u32MinVal;
+        uint16_t amplitude = maxValue - minValue;
         for (unsigned int k = 0; k < width * height; k++)
         {
-            uint32_t val = 256 * (data16[k] - u32MinVal) / amplitude;
+            // Data type needs to hold 255 * uint16_t. Therefore, use uint32_t.
+            uint32_t val = (uint32_t) 255 * (data16[k] - minValue) / amplitude;
             data[k] = (uint8_t) (val);
         }
     }

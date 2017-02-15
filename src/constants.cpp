@@ -59,7 +59,7 @@ namespace constants
 
     const int NESTED_LISTS_TAB_SPACING = 25;
 
-    const int BIT_DEPTH_MIN_VALUE = 8;
+    const int BIT_DEPTH_MIN_VALUE = 1;
     const int BIT_DEPTH_MAX_VALUE = 16;
     const int INTENSITY_MAX_VALUE = 65535;
 }
