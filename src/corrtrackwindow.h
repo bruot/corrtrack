@@ -131,6 +131,7 @@ private:
     void clearCorrelationMaps();
     void updateOuterRectItems();
     void updateCorrelationMaps();
+    void updatePointsCtrlMenuItems();
     bool validateCorrelation() const;
     void initSlider();
     void addPoint(Point);

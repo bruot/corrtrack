@@ -322,6 +322,8 @@ void CorrTrackWindow::addPoint(Point point)
     // Add correlation map (but do not display)
     QGraphicsPixmapItem *item = nullptr;
     correlationMapItems->push_back(item);
+
+    updatePointsCtrlMenuItems();
 }
 
 void CorrTrackWindow::removeLastPoint()
@@ -340,6 +342,7 @@ void CorrTrackWindow::removeLastPoint()
         correlationMapItems->pop_back();
         analyser->getPoints()->pop_back();
     }
+    updatePointsCtrlMenuItems();
 }
 
 void CorrTrackWindow::removeAllPoints()
@@ -357,6 +360,7 @@ void CorrTrackWindow::removeAllPoints()
     outerRectItems->clear();
     correlationMapItems->clear();
     analyser->getPoints()->clear();
+    updatePointsCtrlMenuItems();
 }
 
 void CorrTrackWindow::zoomIn()
@@ -459,6 +463,13 @@ void CorrTrackWindow::updateCorrelationMaps()
             item->setScale(pow(2.0, zoomIndex));
         }
     }
+}
+
+void CorrTrackWindow::updatePointsCtrlMenuItems()
+{
+    bool enableMenus = (pointItems->size() > 0);
+    removeLastAct->setEnabled(enableMenus);
+    removeAllAct->setEnabled(enableMenus);
 }
 
 void CorrTrackWindow::testCorrelation()
@@ -1122,4 +1133,6 @@ void CorrTrackWindow::setMovieRelatedItemsEnabled(const bool state)
     testCorrAct->setEnabled(state);
     analyseAct->setEnabled(state);
     closeAct->setEnabled(state);
+
+    updatePointsCtrlMenuItems();
 }
