@@ -306,6 +306,20 @@ void Movie::loadRawmMovie()
     // Since we are sure there is a dot in the filename, this line is fine:
     rawFileName.erase(rawFileName.find_last_of("."), std::string::npos);
     rawFileName.append(".raw");
+
+    // Check file size
+    uint32_t rawFileSize;
+    try
+    {
+        rawFileSize = fs::file_size(rawFileName);
+    }
+    catch (fs::filesystem_error)
+    {
+        throw MovieFormatException("Could not read .raw file.");
+    }
+    if (rawFileSize != width * height * (bitsPerSample / 8) * nFrames)
+        throw MovieFormatException(".raw file size is inconsistent with movie format in .rawm file.");
+
     std::ifstream is(rawFileName, std::ifstream::binary);
     //
     if (is)
@@ -316,8 +330,6 @@ void Movie::loadRawmMovie()
         {
             while (is.read((char*)buffer, bufferSize))
             {
-                if (currIndex >= framesMeta.size())
-                    throw MovieFormatException(".raw file has more data than expected from .rawm file.");
                 frames8.at(currIndex).load(buffer, width, height,
                                                    framesMeta.at(currIndex).timestamp);
                 ++currIndex;
@@ -328,8 +340,6 @@ void Movie::loadRawmMovie()
             uint16_t* buffer16 = new uint16_t[width * height];
             while (is.read((char*)buffer, bufferSize))
             {
-                if (currIndex >= framesMeta.size())
-                    throw MovieFormatException(".raw file has more data than expected from .rawm file.");
                 for (size_t k = 0; k < width * height; k++)
                     buffer16[k] = ((uint16_t) (buffer[2*k+1]) << 8) + (uint16_t) (buffer[2*k]); // Little endian
                 frames16.at(currIndex).load(buffer16, width, height,
@@ -339,15 +349,6 @@ void Movie::loadRawmMovie()
             delete buffer16;
         }
         delete buffer;
-
-        // Check the number of frames loaded
-        bool throwError = false;
-        if (bitsPerSample == 8)
-            throwError = frames8.size() != framesMeta.size();
-        else
-            throwError = frames16.size() != framesMeta.size();
-        if (throwError)
-            throw MovieFormatException(".raw file has less data than expected from .rawm file.");
     }
     else
         throw MovieFormatException("Could not open .raw file.");
