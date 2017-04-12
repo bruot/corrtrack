@@ -97,7 +97,7 @@ def _get_image_filenames(folder):
 def folder2xiseq(folder, pixel_format):
     """Builds a .xiseq file from the given folder."""
 
-    folder = folder.rstrip('/').rstrip('\\')
+    folder = os.path.abspath(folder)
     xi_path = '%s.xiseq' % folder
     base_folder = os.path.split(folder)[1]
     filenames = _get_image_filenames(folder)
@@ -112,7 +112,7 @@ def folder2xiseq(folder, pixel_format):
 def folder2raw(folder, pixel_format):
     """Builds .raw and .rawm files from the given folder."""
 
-    folder = folder.rstrip('/').rstrip('\\')
+    folder = os.path.abspath(folder)
     raw_path = '%s.raw' % folder
     rawm_path = '%s.rawm' % folder
     filenames = _get_image_filenames(folder)
