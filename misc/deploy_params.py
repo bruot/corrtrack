@@ -32,7 +32,10 @@ FILES = {
          'common': (
                     ('./deployment_README', 'README'),
                     ('../COPYING', ''),
-                    ('../utils/folder2xiseq.py', 'utils/folder2xiseq.py'),
+                    ('../utils/python/corrtrack/__init__.py', 'utils/python/corrtrack/__init__.py'),
+                    ('../utils/python/corrtrack/conversions.py', 'utils/python/corrtrack/conversions.py'),
+                    ('../utils/python/folder2raw.py', 'utils/python/folder2raw.py'),
+                    ('../utils/python/folder2xiseq.py', 'utils/python/folder2xiseq.py'),
                     ('../../additions/sample_files/2.8/movie.rawm', 'examples/movie.rawm'),
                     ('../../additions/sample_files/2.8/movie.raw', 'examples/movie.raw'),
                     ('../../additions/sample_files/2.8/kernel.dat', 'examples/kernel.dat'),
