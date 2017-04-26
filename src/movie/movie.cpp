@@ -308,7 +308,7 @@ void Movie::loadRawmMovie()
     rawFileName.append(".raw");
 
     // Check file size
-    uint32_t rawFileSize;
+    uintmax_t rawFileSize;
     try
     {
         rawFileSize = fs::file_size(rawFileName);
@@ -317,7 +317,7 @@ void Movie::loadRawmMovie()
     {
         throw MovieFormatException("Could not read .raw file.");
     }
-    if (rawFileSize != width * height * (bitsPerSample / 8) * nFrames)
+    if (rawFileSize != (uintmax_t) width * height * (bitsPerSample / 8) * nFrames)
         throw MovieFormatException(".raw file size is inconsistent with movie format in .rawm file.");
 
     std::ifstream is(rawFileName, std::ifstream::binary);
