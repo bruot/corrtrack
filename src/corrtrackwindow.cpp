@@ -285,7 +285,8 @@ void CorrTrackWindow::addPoint(Point point)
     pointItems->push_back(ellipse);
     // Add inner rectangle
     QGraphicsRectItem *innerRect;
-    qreal x0, y0, width, height;
+    qreal x0, y0;
+    unsigned int width, height;
     width = analyser->windowWidth;
     height = analyser->windowHeight;
     x0 = zoomedCoordinate(point.x - (int)(width / 2));
@@ -422,8 +423,8 @@ void CorrTrackWindow::updateZoom()
 
 void CorrTrackWindow::updateOuterRectItems()
 {
-    unsigned int filterWidth = 0;
-    unsigned int filterHeight = 0;
+    unsigned int filterWidth = 1;
+    unsigned int filterHeight = 1;
     if (analyser->filter->isFilterSet())
     {
         filterWidth = analyser->filter->width;
