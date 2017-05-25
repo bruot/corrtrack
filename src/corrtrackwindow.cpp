@@ -263,7 +263,7 @@ bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
                 Frame<uint16_t>* frame = &(analyser->movie->frames16.at(currentFrameIndex - 1));
                 value = frame->getPixelIntensity(x, y);
             }
-            statusBar()->showMessage(QString("(%1, %2), value=%3").arg(x).arg(y).arg(value));
+            statusBar()->showMessage(QString("(%1, %2), value=%3").arg(x + 1).arg(y + 1).arg(value));
         }
     }
     return QMainWindow::eventFilter(target, event);
