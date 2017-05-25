@@ -33,6 +33,7 @@ namespace constants
 
     extern const char* const APP_NAME;
 
+    extern const double ZOOM_BASE;
     extern const int ZOOM_POW_MIN;
     extern const int ZOOM_POW_MAX;
 

@@ -65,7 +65,6 @@
 using namespace constants;
 
 
-
 CorrTrackWindow::CorrTrackWindow(QWidget *parent)
     : QMainWindow(parent),
       movieIsSet{false},
@@ -188,33 +187,19 @@ CorrTrackWindow::~CorrTrackWindow()
 unsigned int CorrTrackWindow::frameCoordinate(const unsigned int coordinate) const
 {
     /* Converts a distance in pixels on the zoomed scene to pixels on
-     * the frame.
-     *
-     * It takes good care of rounding issues.*/
+     * the frame.*/
 
-    int result;
-    if (zoomIndex > 0)
-        result = coordinate / math::ipow(2, zoomIndex);
-    else
-        result = coordinate * math::ipow(2, - zoomIndex);
-
-    return (unsigned int) result;
+    unsigned int result = (double) coordinate / pow(constants::ZOOM_BASE, zoomIndex);
+    return result;
 }
 
 unsigned int CorrTrackWindow::zoomedCoordinate(const unsigned int coordinate) const
 {
     /* Converts a distance in pixels on the frame to pixels on the
-     * zoomed scene.
-     *
-     * It takes good care of rounding issues.*/
+     * zoomed scene.*/
 
-    int result;
-    if (zoomIndex > 0)
-        result = coordinate * math::ipow(2, zoomIndex);
-    else
-        result = coordinate / math::ipow(2, - zoomIndex);
-
-    return (unsigned int) result;
+    unsigned int result = (double) coordinate * pow(constants::ZOOM_BASE, zoomIndex);
+    return result;
 }
 
 bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
@@ -274,7 +259,7 @@ void CorrTrackWindow::addPoint(Point point)
     // Add point to analyser and draw it.
     analyser->addPoint(point);
     // Add point
-    const qreal offset = - POINT_RADIUS + pow(2.0, zoomIndex) / 2.0;
+    const qreal offset = - POINT_RADIUS + pow(constants::ZOOM_BASE, zoomIndex) / 2.0;
     QGraphicsEllipseItem *ellipse;
     ellipse = scene->addEllipse(0.0, 0.0,
                                 2.0 * POINT_RADIUS, 2.0 * POINT_RADIUS,
@@ -386,7 +371,7 @@ void CorrTrackWindow::updateZoom()
 {
     if (movieIsSet)
     {
-        pixmapItem->setScale(pow(2.0, zoomIndex));
+        pixmapItem->setScale(pow(constants::ZOOM_BASE, zoomIndex));
         QRectF rect = pixmapItem->sceneBoundingRect();
         view->setFixedSize(rect.width(), rect.height());
     }
@@ -397,7 +382,7 @@ void CorrTrackWindow::updateZoom()
     resizeAction();
 
     // Update drawn points, rectangles and correlation maps
-    const qreal offset = - POINT_RADIUS + pow(2.0, zoomIndex) / 2.0;
+    const qreal offset = - POINT_RADIUS + pow(constants::ZOOM_BASE, zoomIndex) / 2.0;
     QGraphicsEllipseItem *ellipse;
     QGraphicsRectItem *innerRect;
     const unsigned int width = analyser->windowWidth;
@@ -461,7 +446,7 @@ void CorrTrackWindow::updateCorrelationMaps()
             const Point point = analyser->getPoints()->at(i);
             item->setPos(zoomedCoordinate(point.x - analyser->windowWidth / 2),
                          zoomedCoordinate(point.y - analyser->windowHeight / 2));
-            item->setScale(pow(2.0, zoomIndex));
+            item->setScale(pow(constants::ZOOM_BASE, zoomIndex));
         }
     }
 }

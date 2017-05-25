@@ -34,11 +34,11 @@ class ZoomDialog : public OKCancelDialog
     Q_OBJECT
 
 private:
-    QLabel *zoomIndexLabel;
+    QLabel *zoomFactorLabel;
     QSlider *slider;
 
 private slots:
-    void updateZoomIndexLabel(const int);
+    void updateZoomFactorLabel(const int);
 
 public:
     explicit ZoomDialog(const int zoomIndex, QWidget *parent = 0);

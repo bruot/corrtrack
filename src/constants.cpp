@@ -33,8 +33,9 @@ namespace constants
 
     const char* const APP_NAME = "CorrTrack";
 
-    const int ZOOM_POW_MIN = -4;
-    const int ZOOM_POW_MAX = 4;
+    const double ZOOM_BASE = 4.0 / 3.0;
+    const int ZOOM_POW_MIN = -12;
+    const int ZOOM_POW_MAX = 12;
 
     const qreal POINT_RADIUS = 2.0;
 

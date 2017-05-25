@@ -28,38 +28,35 @@
 
 ZoomDialog::ZoomDialog(const int zoomIndex, QWidget* parent)
     : OKCancelDialog(parent),
-      zoomIndexLabel{new QLabel(this)},
+      zoomFactorLabel{new QLabel(this)},
       slider{new QSlider(this)}
 {
     setWindowTitle("Zoom");
 
-    QLabel *zoomLabel = new QLabel("Zoom index:");
+    QLabel *zoomLabel = new QLabel("Zoom factor:");
 
     slider->setOrientation(Qt::Horizontal);
     slider->setRange(constants::ZOOM_POW_MIN, constants::ZOOM_POW_MAX);
     slider->setValue(zoomIndex);
 
-    updateZoomIndexLabel(zoomIndex);
-
-    QLabel *zoomDescLabel = new QLabel("Zoom factor = 2^index");
+    updateZoomFactorLabel(zoomIndex);
 
     QHBoxLayout *sliderLayout = new QHBoxLayout;
     sliderLayout->addWidget(slider);
-    sliderLayout->addWidget(zoomIndexLabel);
+    sliderLayout->addWidget(zoomFactorLabel);
 
     QVBoxLayout *contentsLayout = new QVBoxLayout;
     contentsLayout->addWidget(zoomLabel);
     contentsLayout->addLayout(sliderLayout);
-    contentsLayout->addWidget(zoomDescLabel);
     setLayout(contentsLayout);
 
     connect(slider, SIGNAL(valueChanged(int)),
-            this, SLOT(updateZoomIndexLabel(const int)));
+            this, SLOT(updateZoomFactorLabel(const int)));
 }
 
-void ZoomDialog::updateZoomIndexLabel(const int zoomIndex)
+void ZoomDialog::updateZoomFactorLabel(const int zoomIndex)
 {
-    zoomIndexLabel->setText(QString("%1").arg(zoomIndex));
+    zoomFactorLabel->setText(QString::number(pow(constants::ZOOM_BASE, zoomIndex), 'f', 3));
 }
 
 int ZoomDialog::getZoomIndex() const
