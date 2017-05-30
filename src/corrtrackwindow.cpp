@@ -138,13 +138,12 @@ CorrTrackWindow::CorrTrackWindow(QWidget *parent)
     scene->installEventFilter(this);
     scene->addItem(pixmapItem);
 
-    view->setFixedSize(0, 0);
     view->setScene(scene);
-    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    QWidget *middleFiller = new QWidget;
-    middleFiller->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    // Keep view's size policy when hidden
+    QSizePolicy sp = view->sizePolicy();
+    sp.setRetainSizeWhenHidden(true);
+    view->setSizePolicy(sp);
 
     QString title;
     if (VERSION == TARGET_VERSION)
@@ -158,7 +157,6 @@ CorrTrackWindow::CorrTrackWindow(QWidget *parent)
 
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(view);
-    layout->addWidget(middleFiller);
     layout->addWidget(fileNameLabel);
     layout->addLayout(sliderLayout);
 
@@ -184,21 +182,21 @@ CorrTrackWindow::~CorrTrackWindow()
 {
 }
 
-unsigned int CorrTrackWindow::frameCoordinate(const unsigned int coordinate) const
+int CorrTrackWindow::frameCoordinate(const int coordinate) const
 {
     /* Converts a distance in pixels on the zoomed scene to pixels on
      * the frame.*/
 
-    unsigned int result = (double) coordinate / pow(constants::ZOOM_BASE, zoomIndex);
+    int result = (double) coordinate / pow(constants::ZOOM_BASE, zoomIndex);
     return result;
 }
 
-unsigned int CorrTrackWindow::zoomedCoordinate(const unsigned int coordinate) const
+int CorrTrackWindow::zoomedCoordinate(const int coordinate) const
 {
     /* Converts a distance in pixels on the frame to pixels on the
      * zoomed scene.*/
 
-    unsigned int result = (double) coordinate * pow(constants::ZOOM_BASE, zoomIndex);
+    int result = (double) coordinate * pow(constants::ZOOM_BASE, zoomIndex);
     return result;
 }
 
@@ -210,10 +208,14 @@ bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
         {
             const QGraphicsSceneMouseEvent* const me = static_cast<const QGraphicsSceneMouseEvent*>(event);
             const QPointF position = me->scenePos();
-            Point point(0, 0);
-            point.x = frameCoordinate((unsigned int) position.x());
-            point.y = frameCoordinate((unsigned int) position.y());
-            addPoint(point);
+            int x = frameCoordinate((int) position.x());
+            int y = frameCoordinate((int) position.y());
+            if (x >= 0 && x < (int) analyser->movie->width
+                    && y >= 0 && y < (int) analyser->movie->height)
+            {
+                Point point(x, y);
+                addPoint(point);
+            }
         }
         else if (event->type() == QEvent::GraphicsSceneWheel)
         {
@@ -233,22 +235,29 @@ bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
         {
             const QGraphicsSceneMouseEvent* const me = static_cast<const QGraphicsSceneMouseEvent*>(event);
             const QPointF position = me->scenePos();
-            unsigned int x = frameCoordinate((unsigned int) position.x());
-            unsigned int y = frameCoordinate((unsigned int) position.y());
-
-            // If this event is triggered, movie is necessarily set.
-            uint16_t value;
-            if (analyser->movie->bitsPerSample == 8)
+            int x = frameCoordinate((int) position.x());
+            int y = frameCoordinate((int) position.y());
+            if (x >= 0 && x < (int) analyser->movie->width
+                    && y >= 0 && y < (int) analyser->movie->height)
             {
-                Frame<uint8_t>* frame = &(analyser->movie->frames8.at(currentFrameIndex - 1));
-                value = (uint16_t) (frame->getPixelIntensity(x, y));
+                // If this event is triggered, movie is necessarily set.
+                uint16_t value;
+                if (analyser->movie->bitsPerSample == 8)
+                {
+                    Frame<uint8_t>* frame = &(analyser->movie->frames8.at(currentFrameIndex - 1));
+                    value = (uint16_t) (frame->getPixelIntensity(x, y));
+                }
+                else // bitsPerSample == 16
+                {
+                    Frame<uint16_t>* frame = &(analyser->movie->frames16.at(currentFrameIndex - 1));
+                    value = frame->getPixelIntensity(x, y);
+                }
+                statusBar()->showMessage(QString("(%1, %2), value=%3").arg(x + 1).arg(y + 1).arg(value));
             }
-            else // bitsPerSample == 16
+            else
             {
-                Frame<uint16_t>* frame = &(analyser->movie->frames16.at(currentFrameIndex - 1));
-                value = frame->getPixelIntensity(x, y);
+                statusBar()->clearMessage();
             }
-            statusBar()->showMessage(QString("(%1, %2), value=%3").arg(x + 1).arg(y + 1).arg(value));
         }
     }
     return QMainWindow::eventFilter(target, event);
@@ -371,15 +380,12 @@ void CorrTrackWindow::updateZoom()
 {
     if (movieIsSet)
     {
-        pixmapItem->setScale(pow(constants::ZOOM_BASE, zoomIndex));
-        QRectF rect = pixmapItem->sceneBoundingRect();
-        view->setFixedSize(rect.width(), rect.height());
+        const double factor = pow(constants::ZOOM_BASE, zoomIndex);
+        pixmapItem->setScale(factor);
+        view->setSceneRect(0, 0,
+                           factor * pixmapItem->pixmap().width(),
+                           factor * pixmapItem->pixmap().height());
     }
-    else
-    {
-        view->setFixedSize(0, 0);
-    }
-    resizeAction();
 
     // Update drawn points, rectangles and correlation maps
     const qreal offset = - POINT_RADIUS + pow(constants::ZOOM_BASE, zoomIndex) / 2.0;
@@ -583,25 +589,6 @@ void CorrTrackWindow::initSlider()
     updateFrameDisplay();
 }
 
-void CorrTrackWindow::resizeAction()
-{
-    QRectF viewRect(view->rect());
-    view->setSceneRect(viewRect);
-}
-
-void CorrTrackWindow::resizeEvent(QResizeEvent * event)
-{
-    resizeAction();
-    return QMainWindow::resizeEvent(event);
-}
-
-bool CorrTrackWindow::event(QEvent * event)
-{
-    if (event->type() == QEvent::Show)
-        resizeAction();
-
-    return QMainWindow::event(event);
-}
 
 void CorrTrackWindow::openMovie()
 {
@@ -656,6 +643,7 @@ void CorrTrackWindow::closeMovie()
     analyser->resetMovie();
     movieIsSet = false;
 
+    view->hide();
     movieSlider->setRange(1, 1);
     movieSlider->setValue(1);
     currentTime = 0.0;
@@ -669,7 +657,6 @@ void CorrTrackWindow::closeMovie()
     // Clear display
     removeAllPoints();
     pixmapItem->setPixmap(QPixmap());
-    view->setFixedSize(0, 0);
 
     frameIndexLabel->setText(QString(""));
     fileNameLabel->setText("");
@@ -778,6 +765,7 @@ void CorrTrackWindow::onOpenMovieFinished(const QString& fileName,
         QFileInfo fileInfo = QFileInfo(fileName);
         fileNameLabel->setText(fileInfo.fileName());
         QString message = QString("Loaded %1.").arg(fileInfo.fileName());
+        view->show();
         statusBar()->showMessage(message);
     }
 
@@ -1110,11 +1098,13 @@ void CorrTrackWindow::setMovieRelatedItemsEnabled(const bool state)
         bool enable = analyser->movie->format == Movie::Format::Rawm;
         extractCurrentTiffAct->setEnabled(enable);
         extractTiffsAct->setEnabled(enable);
+        view->show();
     }
     else
     {
         extractCurrentTiffAct->setEnabled(false);
         extractTiffsAct->setEnabled(false);
+        view->hide();
     }
     testCorrAct->setEnabled(state);
     analyseAct->setEnabled(state);

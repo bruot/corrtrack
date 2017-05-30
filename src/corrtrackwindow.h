@@ -140,8 +140,8 @@ private:
     void setMovieRelatedItemsEnabled(const bool state);
     void displayMessageBox(const QString text) const;
     void updateFrameDisplay();
-    unsigned int frameCoordinate(const unsigned int coordinate) const;
-    unsigned int zoomedCoordinate(const unsigned int coordinate) const;
+    int frameCoordinate(const int coordinate) const;
+    int zoomedCoordinate(const int coordinate) const;
 
 private slots:
     // File
@@ -176,8 +176,5 @@ public:
     ~CorrTrackWindow();
 
 protected:
-    virtual void resizeEvent(QResizeEvent * event) override;
-    virtual bool event(QEvent * event) override;
-    virtual void resizeAction();
     virtual bool eventFilter(QObject *target, QEvent *event) override;
 };
