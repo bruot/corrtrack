@@ -52,11 +52,11 @@ contains(QT_ARCH, i386) {
     win32:INCLUDEPATH += \
         C:\lib\msvc2015_32\include
     win32:LIBS += \
-        C:\lib\msvc2015_32\lib\gsl\gslcblas.lib \
+        C:\lib\msvc2015_32\lib\gsl\cblas.lib \
         C:\lib\msvc2015_32\lib\gsl\gsl.lib \
-        C:\lib\msvc2015_32\lib\boost\libboost_regex-vc140-mt-1_60.lib \
-        C:\lib\msvc2015_32\lib\boost\libboost_system-vc140-mt-1_60.lib \
-        C:\lib\msvc2015_32\lib\boost\libboost_filesystem-vc140-mt-1_60.lib \
+        C:\lib\msvc2015_32\lib\boost\libboost_regex-vc140-mt-1_64.lib \
+        C:\lib\msvc2015_32\lib\boost\libboost_system-vc140-mt-1_64.lib \
+        C:\lib\msvc2015_32\lib\boost\libboost_filesystem-vc140-mt-1_64.lib \
         C:\lib\msvc2015_32\lib\tiff\tiff.lib
 } else {
     unix:INCLUDEPATH += \
@@ -66,11 +66,11 @@ contains(QT_ARCH, i386) {
     win32:INCLUDEPATH += \
         C:\lib\msvc2015_64\include
     win32:LIBS += \
-        C:\lib\msvc2015_64\lib\gsl\gslcblas.lib \
+        C:\lib\msvc2015_64\lib\gsl\cblas.lib \
         C:\lib\msvc2015_64\lib\gsl\gsl.lib \
-        C:\lib\msvc2015_64\lib\boost\libboost_regex-vc140-mt-1_60.lib \
-        C:\lib\msvc2015_64\lib\boost\libboost_system-vc140-mt-1_60.lib \
-        C:\lib\msvc2015_64\lib\boost\libboost_filesystem-vc140-mt-1_60.lib \
+        C:\lib\msvc2015_64\lib\boost\libboost_regex-vc140-mt-1_64.lib \
+        C:\lib\msvc2015_64\lib\boost\libboost_system-vc140-mt-1_64.lib \
+        C:\lib\msvc2015_64\lib\boost\libboost_filesystem-vc140-mt-1_64.lib \
         C:\lib\msvc2015_64\lib\tiff\tiff.lib
 }
 win32:QMAKE_LFLAGS += /NODEFAULTLIB:libcmt
