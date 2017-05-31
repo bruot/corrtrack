@@ -28,7 +28,7 @@
 
 namespace constants
 {
-    const char* const VERSION = "2.8";
+    const char* const VERSION = "2.9";
     const char* const TARGET_VERSION = "2.9";
 
     const char* const APP_NAME = "CorrTrack";
