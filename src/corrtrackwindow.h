@@ -125,6 +125,7 @@ private:
     QAction *aboutAct;
     QAction *aboutQtAct;
 
+    void openMovie(const QString path);
     void updateZoom();
     void zoomIn();
     void zoomOut();
@@ -145,7 +146,7 @@ private:
 
 private slots:
     // File
-    void openMovie();
+    void openMovieWithDialog();
     void testCorrelation();
     void analyse();
     void extractCurrentTiff();
@@ -167,6 +168,7 @@ private slots:
     void updateFrameIndex(const int frame);
     void onSpeedChanged(const QString text);
 
+    void onWindowLoaded();
     void onOpenMovieFinished(const QString &fileName, const QString& msg);
     void onAnalyseFinished(const QString& msg);
     void onExtractTiffsFinished(const QString& msg);

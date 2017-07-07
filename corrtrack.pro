@@ -75,6 +75,8 @@ contains(QT_ARCH, i386) {
 }
 win32:QMAKE_LFLAGS += /NODEFAULTLIB:libcmt
 
+win32:RC_ICONS += icon.ico
+
 CONFIG += c++11
 
 CONFIG(release, debug|release) {

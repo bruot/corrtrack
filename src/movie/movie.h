@@ -92,10 +92,10 @@ public:
                         const unsigned int minValue,
                         const unsigned int maxValue) const;
 
-    class MovieFormatException : public std::exception
+    class MovieException : public std::exception
     {
     public:
-        MovieFormatException(const char * const msg);
+        MovieException(const char * const msg);
         virtual const char* what() const noexcept override;
     private:
         char* err_msg;

@@ -42,6 +42,7 @@
 #include <QImage>
 #include <QFileInfo>
 #include <QGraphicsSceneWheelEvent>
+#include <QTimer>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 #include "constants.h"
@@ -176,6 +177,8 @@ CorrTrackWindow::CorrTrackWindow(QWidget *parent)
             this, SLOT(onPlayButtonClick(const bool)));
     connect(movieSlider, SIGNAL(valueChanged(int)),
             this, SLOT(updateFrameIndex(const int)));
+
+    QTimer::singleShot(0, this, SLOT(onWindowLoaded()));
 }
 
 CorrTrackWindow::~CorrTrackWindow()
@@ -198,6 +201,16 @@ int CorrTrackWindow::zoomedCoordinate(const int coordinate) const
 
     int result = (double) coordinate * pow(constants::ZOOM_BASE, zoomIndex);
     return result;
+}
+
+void CorrTrackWindow::onWindowLoaded()
+{
+    if (QApplication::arguments().size() > 1)
+    {
+        // The program presumably launched by trying to open a file
+        // in the OS. Let's try to open that file.
+        openMovie(QApplication::arguments().at(1));
+    }
 }
 
 bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
@@ -589,8 +602,26 @@ void CorrTrackWindow::initSlider()
     updateFrameDisplay();
 }
 
+void CorrTrackWindow::openMovie(const QString path)
+{
+    progressWindow = new ProgressWindow(this);
+    progressWindow->setWindowTitle("Opening file...");
+    progressWindow->setNStepsPtr(&(analyser->movie->nFrames));
+    analyser->movie->currIndex = 0;
+    progressWindow->setStepPtr(&(analyser->movie->currIndex));
+    progressWindow->open();
 
-void CorrTrackWindow::openMovie()
+    openMovieWorker = new OpenMovieWorker(analyser, path);
+    taskThread = new QThread;
+    openMovieWorker->moveToThread(taskThread);
+    connect(taskThread, &QThread::started,
+            openMovieWorker, &OpenMovieWorker::openMovie);
+    connect(openMovieWorker, &OpenMovieWorker::finishedWithMessage,
+            this, &CorrTrackWindow::onOpenMovieFinished);
+    taskThread->start();
+}
+
+void CorrTrackWindow::openMovieWithDialog()
 {
     QString fileName;
 
@@ -615,21 +646,7 @@ void CorrTrackWindow::openMovie()
     lastMovieFolder = QFileInfo(fileName).path();
     lastFolder = lastMovieFolder;
 
-    progressWindow = new ProgressWindow(this);
-    progressWindow->setWindowTitle("Opening file...");
-    progressWindow->setNStepsPtr(&(analyser->movie->nFrames));
-    analyser->movie->currIndex = 0;
-    progressWindow->setStepPtr(&(analyser->movie->currIndex));
-    progressWindow->open();
-
-    openMovieWorker = new OpenMovieWorker(analyser, fileName);
-    taskThread = new QThread;
-    openMovieWorker->moveToThread(taskThread);
-    connect(taskThread, &QThread::started,
-            openMovieWorker, &OpenMovieWorker::openMovie);
-    connect(openMovieWorker, &OpenMovieWorker::finishedWithMessage,
-            this, &CorrTrackWindow::onOpenMovieFinished);
-    taskThread->start();
+    openMovie(fileName);
 }
 
 void CorrTrackWindow::closeMovie()
@@ -996,7 +1013,7 @@ void CorrTrackWindow::createActions()
     openAct = new QAction(tr("&Open..."), this);
     openAct->setShortcuts(QKeySequence::Open);
     openAct->setStatusTip(tr("Open an existing file"));
-    connect(openAct, SIGNAL(triggered()), this, SLOT(openMovie()));
+    connect(openAct, SIGNAL(triggered()), this, SLOT(openMovieWithDialog()));
 
     testCorrAct = new QAction(tr("&Test correlation"), this);
     testCorrAct->setShortcut(QKeySequence(tr("Ctrl+T")));

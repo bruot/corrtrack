@@ -31,6 +31,7 @@
 #include <stdexcept>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/algorithm/string.hpp>
@@ -48,16 +49,14 @@ namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 
-Movie::MovieFormatException::MovieFormatException(const char * const msg)
+Movie::MovieException::MovieException(const char * const msg)
     : std::exception()
 {
-    char* prefix = (char*)"Movie format error: ";
-    err_msg = (char *) malloc(1 + std::strlen(prefix) + std::strlen(msg));
-    strcpy(err_msg, prefix);
-    strcat(err_msg, msg);
+    err_msg = (char *) malloc(1 + std::strlen(msg));
+    strcpy(err_msg, msg);
 }
 
-const char* Movie::MovieFormatException::what() const noexcept
+const char* Movie::MovieException::what() const noexcept
 {
     return err_msg;
 }
@@ -113,6 +112,10 @@ void Movie::openMovie(const std::string fileName)
 
     this->fileName = fileName;
 
+    // CHeck that the file exists
+    if (!boost::filesystem::exists(fileName))
+        throw MovieException("File does not exist.");
+
     fs::path path(fileName);
     fs::path ext = path.extension();
 
@@ -140,7 +143,7 @@ void Movie::openMovie(const std::string fileName)
         loadImageMovie();
     }
     else
-        throw MovieFormatException("Unknown file extension.");
+        throw MovieException("Unknown file extension.");
     timestamps.reserve(nFrames);
     if (bitsPerSample == 8)
     {
@@ -167,7 +170,7 @@ pt::ptree Movie::getPropertyTree(std::string fileName) const
     }
     catch (pt::xml_parser_error)
     {
-        throw MovieFormatException("XML parser error.");
+        throw MovieException("XML parser error.");
     }
     return pt;
 }
@@ -183,7 +186,7 @@ pt::ptree Movie::getChild(const boost::property_tree::ptree pt,
     catch(pt::ptree_bad_path)
     {
         QString msg = QString("Key '%1' not found.").arg(key);
-        throw MovieFormatException(msg.toStdString().c_str());
+        throw MovieException(msg.toStdString().c_str());
     }
     return child;
 }
@@ -203,13 +206,13 @@ template<typename outputType>
         if (!isOptional)
         {
             QString msg = QString("Key '%1' not found.").arg(name);
-            throw MovieFormatException(msg.toStdString().c_str());
+            throw MovieException(msg.toStdString().c_str());
         }
     }
     catch (pt::ptree_bad_data)
     {
         QString msg = QString("Error while reading key '%1'.").arg(name);
-        throw MovieFormatException(msg.toStdString().c_str());
+        throw MovieException(msg.toStdString().c_str());
     }
 }
 
@@ -218,7 +221,7 @@ void Movie::loadRawmMovie()
     // Read header
 
     // getPropertyTree, getChild and setXmlVar are safe methods that throw a
-    // MovieFormatException if necessary.
+    // MovieException if necessary.
 
     pt::ptree pt = getPropertyTree(fileName);
 
@@ -235,7 +238,7 @@ void Movie::loadRawmMovie()
         setXmlVar<std::string>(pt, "movie_metadata.header.image_data_format",
                                imgDataFormat);
         if (imgDataFormat != std::string("MONO8"))
-            throw MovieFormatException("Rawm metadata format of version lower than 1.3 only supports Mono8 images.");
+            throw MovieException("Rawm metadata format of version lower than 1.3 only supports Mono8 images.");
         pixelFmt =  MovieFormats::PixelFmt::Mono8;
     }
     else
@@ -265,11 +268,11 @@ void Movie::loadRawmMovie()
         else if (endiannessStr == std::string("big"))
             endianness = MovieFormats::Endianness::big;
         else
-            throw MovieFormatException("Unknwown endianness.");
+            throw MovieException("Unknwown endianness.");
     }
 
     if (endianness == MovieFormats::Endianness::big)
-        throw MovieFormatException("Data stored in big endian is currently not supported.");
+        throw MovieException("Data stored in big endian is currently not supported.");
 
     uint32_t width;
     setXmlVar<uint32_t>(pt, "movie_metadata.header.width", width);
@@ -280,7 +283,7 @@ void Movie::loadRawmMovie()
     {
         setXmlVar<double>(pt, "movie_metadata.header.framerate", framerate);
     }
-    catch (MovieFormatException) {} // ignore if framerate is missing or unreadable
+    catch (MovieException) {} // ignore if framerate is missing or unreadable
 
     std::vector<frameMetadata> framesMeta;
     pt::ptree ptFrames = getChild(pt, "movie_metadata.frames");
@@ -294,7 +297,7 @@ void Movie::loadRawmMovie()
     }
 
     if (framesMeta.size() == 0)
-        throw MovieFormatException("No frames found in XML file.");
+        throw MovieException("No frames found in XML file.");
 
     nFrames = (unsigned int) (framesMeta.size());
     if (bitsPerSample == 8)
@@ -315,10 +318,10 @@ void Movie::loadRawmMovie()
     }
     catch (fs::filesystem_error)
     {
-        throw MovieFormatException("Could not read .raw file.");
+        throw MovieException("Could not read .raw file.");
     }
     if (rawFileSize != (uintmax_t) width * height * (bitsPerSample / 8) * nFrames)
-        throw MovieFormatException(".raw file size is inconsistent with movie format in .rawm file.");
+        throw MovieException(".raw file size is inconsistent with movie format in .rawm file.");
 
     std::ifstream is(rawFileName, std::ifstream::binary);
     //
@@ -351,7 +354,7 @@ void Movie::loadRawmMovie()
         delete buffer;
     }
     else
-        throw MovieFormatException("Could not open .raw file.");
+        throw MovieException("Could not open .raw file.");
     is.close();
 }
 
@@ -368,7 +371,7 @@ void Movie::loadXiseqMovie()
             frameMetadata fm;
             std::string fileName = it.second.data();
             if (fileName.empty())
-                throw MovieFormatException("<file> key has no data.");
+                throw MovieException("<file> key has no data.");
             fm.fileName = fileName;
             setXmlVar<uint64_t>(it.second, "<xmlattr>.timestamp", fm.timestamp);
             framesMeta.push_back(fm);
@@ -391,7 +394,7 @@ void Movie::loadXiseqMovie()
             }
             catch (const boost::bad_lexical_cast)
             {
-                throw MovieFormatException("Cannot read \"xiApiImg:format\" parameter.");
+                throw MovieException("Cannot read \"xiApiImg:format\" parameter.");
             }
 
             break;
@@ -425,7 +428,7 @@ void Movie::loadXiseqMovie()
             }
             catch (Frame<uint8_t>::FrameLoadException)
             {
-                throw MovieFormatException("Frame load exception.");
+                throw MovieException("Frame load exception.");
             }
         }
         else // bitsPerSample == 16
@@ -436,7 +439,7 @@ void Movie::loadXiseqMovie()
             }
             catch (Frame<uint16_t>::FrameLoadException)
             {
-                throw MovieFormatException("Frame load exception.");
+                throw MovieException("Frame load exception.");
             }
         }
     }
@@ -455,14 +458,14 @@ void Movie::loadTiffMovie()
         uint16 tmpBitsPerSample;
         TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &tmpBitsPerSample);
         if (tmpBitsPerSample != 8 && tmpBitsPerSample != 16)
-            throw MovieFormatException("Only 8 and 16 bits per pixel sample are allowed.");
+            throw MovieException("Only 8 and 16 bits per pixel sample are allowed.");
         bitsPerSample = (unsigned int) tmpBitsPerSample;
         // We don't know the bit depth, so here is a guess:
         bitDepth = bitsPerSample;
         TIFFClose(tif);
     }
     else
-        throw MovieFormatException("Could not open tif.");
+        throw MovieException("Could not open tif.");
 
     if (bitsPerSample == 8)
     {
@@ -473,7 +476,7 @@ void Movie::loadTiffMovie()
         }
         catch (Frame<uint8_t>::FrameLoadException)
         {
-            throw MovieFormatException("Could not load frame.");
+            throw MovieException("Could not load frame.");
         }
     }
     else
@@ -485,7 +488,7 @@ void Movie::loadTiffMovie()
         }
         catch (Frame<uint16_t>::FrameLoadException)
         {
-            throw MovieFormatException("Could not load frame.");
+            throw MovieException("Could not load frame.");
         }
     }
 }
@@ -504,7 +507,7 @@ void Movie::loadImageMovie()
     }
     catch (Frame<uint8_t>::FrameLoadException)
     {
-        throw MovieFormatException("Frame load exception.");
+        throw MovieException("Frame load exception.");
     }
 }
 
@@ -675,7 +678,7 @@ MovieFormats::PixelFmt Movie::safeStrToPixelFmt(const std::string pixelFmtStr) c
     }
     catch (std::out_of_range)
     {
-        throw MovieFormatException("Invalid pixel format string.");
+        throw MovieException("Invalid pixel format string.");
     }
     return pixelFmt;
 }
@@ -689,7 +692,7 @@ MovieFormats::PixelFmt Movie::safeInt32ToPixelFmt(const uint32_t pixelFmtInt) co
     }
     catch (std::out_of_range)
     {
-        throw MovieFormatException("Invalid pixel format uint32 value.");
+        throw MovieException("Invalid pixel format uint32 value.");
     }
     return pixelFmt;
 }

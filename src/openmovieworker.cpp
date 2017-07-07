@@ -44,7 +44,7 @@ void OpenMovieWorker::openMovie()
     {
         errorMsg = QString(e.what());
     }
-    catch (Movie::MovieFormatException &e)
+    catch (Movie::MovieException &e)
     {
         errorMsg = QString(e.what());
     }
