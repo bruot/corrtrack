@@ -22,8 +22,8 @@
 
 """Alters a raw/rawm movie and save it into new files.
 
-Possible operations are cropping to a smaller sequence, framerate change.  TODO
-continue.
+Possible operations are cutting movie to a smaller sequence and changing
+frames step.
 """
 
 
