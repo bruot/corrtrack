@@ -36,6 +36,11 @@ if __name__ == '__main__':
     pixel_format = args[1]
     for arg in args[2:]:
         if os.path.isdir(arg):
+            folder = os.path.abspath(arg)
+            xi_path = '%s.xiseq' % folder
+            if os.path.exists(xi_path):
+                sys.stderr.write('Output .xiseq file already exists.\n')
+                sys.exit(1)
             conversions.folder2xiseq(arg, pixel_format)
         else:
             sys.stderr.write("Warning: Not a directory: %s.\n" % arg)

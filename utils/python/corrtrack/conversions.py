@@ -27,7 +27,7 @@ import os
 import sys
 import numpy
 import PIL.Image
-import xml.etree.ElementTree
+import lxml.etree
 from natsort import natsorted
 
 
@@ -105,40 +105,56 @@ class Metadata(object):
 def _get_rawm_tree(path):
     """Open an XML .rawm file and return the root tree."""
 
-    root = xml.etree.ElementTree.parse(path).getroot()
+    root = lxml.etree.parse(path).getroot()
     if root.tag != 'movie_metadata':
         raise KeyError('The XML root is not a "movie_metadata" element.')
     return root
 
 
-def _write_xiseq_header(f, pixel_format):
-    f.write('<ImageSequence version="4.8.2">\n')
-    f.write(' <imageMetadata>\n')
+def _create_xml_with_header(endianness, width, height, pixel_format):
+    """Creates a movie_metadata XML structure with filled header and empty 'frames'"""
+
+    root = lxml.etree.Element('movie_metadata',
+                              app_name='xiFastMovie',
+                              version='1.4')
+    header = lxml.etree.SubElement(root, 'header')
+
+    lxml.etree.SubElement(header, 'width').text = '%d' % width
+    lxml.etree.SubElement(header, 'height').text = '%d' % height
+    lxml.etree.SubElement(header, 'pixel_format').text = pixel_format.capitalize()
+    lxml.etree.SubElement(header, 'endianness').text = endianness
+
+    lxml.etree.SubElement(root, 'frames')
+
+    return root
+
+
+def _xml_add_frame(root, frame, timestamp):
+    """Adds a frame element to the frames structure in the XML metadata"""
+
+    frames = root.find('frames')
+    lxml.etree.SubElement(frames, 'frame',
+                          frame='%d' % frame,
+                          timestamp='%d' % timestamp)
+
+
+def _create_xiseq_with_header(pixel_format):
+    """Creates a Xiseq XML structure with filled header"""
+
+    root = lxml.etree.Element('ImageSequence', version='4.8.2')
+    header = lxml.etree.SubElement(root, 'imageMetadata')
+
     val = PIXEL_FORMAT_VALUES[pixel_format.lower()]
-    f.write('  <apiContextList>xiApiImg:format=%d\n' % val)
-    f.write('  </apiContextList>\n')
-    f.write(' </imageMetadata>\n')
+    lxml.etree.SubElement(header, 'apiContextList').text = 'xiApiImg:format=%d' % val
+
+    return root
 
 
-def _write_xiseq_footer(f):
-    f.write('</ImageSequence>\n')
+def _xiseq_add_frame(root, timestamp, relpath):
+    """Adds a frame ("file" tag) to the XML metadata"""
 
-
-def _write_rawm_header(f, endianness, width, height, pixel_format):
-    f.write('<?xml version="1.0" encoding="UTF-8" ?>\n')
-    f.write('<movie_metadata app_name="xiFastMovie" version="1.4">\n')
-    f.write('\t<header>\n')
-    f.write('\t\t<width>%d</width>\n' % width)
-    f.write('\t\t<height>%d</height>\n' % height)
-    f.write('\t\t<pixel_format>%s</pixel_format>\n' % pixel_format.capitalize())
-    f.write('\t\t<endianness>%s</endianness>\n' % endianness)
-    f.write('\t</header>\n')
-    f.write('\t<frames>\n')
-
-
-def _write_rawm_footer(f):
-    f.write('\t</frames>\n')
-    f.write('</movie_metadata>\n')
+    file = lxml.etree.SubElement(root, 'file', timestamp='%d' % timestamp)
+    file.text = relpath
 
 
 def _get_image_filenames(folder):
@@ -175,12 +191,15 @@ def folder2xiseq(folder, pixel_format):
     xi_path = '%s.xiseq' % folder
     base_folder = os.path.split(folder)[1]
     filenames = _get_image_filenames(folder)
-    with open(xi_path, 'w') as f:
-        _write_xiseq_header(f, pixel_format)
-        for timestamp, filename in enumerate(filenames):
-            relpath = os.path.join(base_folder, filename)
-            f.write(' <file timestamp="%d">%s</file>\n' % (timestamp, relpath))
-        _write_xiseq_footer(f)
+
+    root = _create_xiseq_with_header(pixel_format)
+    for timestamp, filename in enumerate(filenames):
+        relpath = os.path.join(base_folder, filename)
+        _xiseq_add_frame(root, timestamp, relpath)
+
+    tree = lxml.etree.ElementTree(root)
+    tree.write(xi_path, encoding='UTF-8', xml_declaration=True,
+               pretty_print=True)
 
 
 def folder2raw(folder, pixel_format):
@@ -207,11 +226,16 @@ def folder2raw(folder, pixel_format):
             data.tofile(f)
 
     # Write .rawm file
-    with open(rawm_path, 'w') as f:
-        _write_rawm_header(f, sys.byteorder, width, height, pixel_format)
-        for i in range(len(filenames)):
-            f.write('\t<frame frame="%d" timestamp="%d" />\n' % (i, i))
-        _write_rawm_footer(f)
+    root = _create_xml_with_header(sys.byteorder,
+                                   width, height, pixel_format)
+
+    for i in range(len(filenames)):
+        _xml_add_frame(root, i, i)
+
+    tree = lxml.etree.ElementTree(root)
+    print(rawm_path)
+    tree.write(rawm_path, encoding='UTF-8', xml_declaration=True,
+               pretty_print=True)
 
 
 def alter_movie(input, output, begin, end, step):
@@ -241,8 +265,6 @@ def alter_movie(input, output, begin, end, step):
                 frames_tree.remove(child)
             i -= 1
 
-    tree = xml.etree.ElementTree.ElementTree(root)
-
     # Update framerate if known
     header = _get_elem(root, 'header')
     try:
@@ -254,4 +276,6 @@ def alter_movie(input, output, begin, end, step):
         elem.text = str(framerate / step)
 
     # Write new XML file
-    tree.write(output + '.rawm', encoding='UTF-8', xml_declaration=True)
+    tree = lxml.etree.ElementTree(root)
+    tree.write(output + '.rawm', encoding='UTF-8', xml_declaration=True,
+               pretty_print=True)
