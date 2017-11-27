@@ -32,7 +32,7 @@ if __name__ == '__main__':
     args = sys.argv
     if len(args) < 3:
         sys.stderr.write('usage: folder2xiseq.py PIXEL_FORMAT FOLDER_1 [FOLDER_2 ...]\n')
-        exit(2)
+        sys.exit(2)
     pixel_format = args[1]
     for arg in args[2:]:
         if os.path.isdir(arg):
