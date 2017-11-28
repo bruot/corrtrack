@@ -213,8 +213,12 @@ def folder2raw(folder, pixel_format):
     # Get movie dimensions from first image
     im = PIL.Image.open(os.path.join(folder, filenames[0]))
     width, height = im.size
-    # Pixel size consistency check
     data = numpy.asarray(im)
+    # Only accept grayscale images
+    if len(data.shape) == 3:
+        if data.shape[2] != 1:
+            raise TypeError('First image is not a grayscale image.')
+    # Pixel size consistency check
     if data.dtype.itemsize != PIXEL_FORMAT_BYTES[pixel_format]:
         raise TypeError("First image's pixel data do not match the given pixel format.")
 
