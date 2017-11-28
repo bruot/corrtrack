@@ -242,20 +242,30 @@ def folder2raw(folder, pixel_format):
                pretty_print=True)
 
 
-def alter_movie(input, output, begin, end, step):
+def alter_movie(input, output, begin, end, step, x, y, width, height):
     """Modifies a movie and saves the result into new files"""
 
     metadata = Metadata(input)
+
+    crop = (x != 1 or y != 1
+            or width != metadata.width or height != metadata.height)
 
     # Write output .raw file
     with open(input + '.raw', 'rb') as file_in:
         with open(output + '.raw', 'wb') as file_out:
             # Make sure to keep the following logic up-to-date with the one for
             # the metadata.
-            for i in range(begin - 1, end, step):
-                cursor = i * metadata.frame_size()
-                file_in.seek(cursor)
-                file_out.write(file_in.read(metadata.frame_size()))
+            bytes_per_px = metadata.bytes_per_pixel()
+            row_size = bytes_per_px * metadata.width
+            for k in range(begin - 1, end, step):
+                cursor = k * metadata.frame_size()
+                if crop:
+                    for j in range(y - 1, y - 1 + height):
+                        file_in.seek(cursor + j * row_size + bytes_per_px * (x - 1))
+                        file_out.write(file_in.read(bytes_per_px * width))
+                else:
+                    file_in.seek(cursor)
+                    file_out.write(file_in.read(metadata.frame_size()))
 
     root = _get_rawm_tree(input + '.rawm')
     frames_tree = _get_elem(root, 'frames')
@@ -278,7 +288,13 @@ def alter_movie(input, output, begin, end, step):
     else:
         framerate = float(elem.text)
         elem.text = str(framerate / step)
-
+    # Update width and height, if needed
+    if width != metadata.width:
+        elem = _get_elem(header, 'width')
+        elem.text = str(width)
+    if height != metadata.height:
+        elem = _get_elem(header, 'height')
+        elem.text = str(height)
     # Write new XML file
     tree = lxml.etree.ElementTree(root)
     tree.write(output + '.rawm', encoding='UTF-8', xml_declaration=True,

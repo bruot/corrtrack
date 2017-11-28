@@ -45,15 +45,23 @@ if __name__ == '__main__':
                         default=1,
                         help='start frame')
     parser.add_argument('--end', type=int,
-                        default=max,
                         help='end frame')
     parser.add_argument('--step', type=int,
                         default=1,
                         help='frame step')
-
+    parser.add_argument('--x', type=int,
+                        default=1,
+                        help='crop window x')
+    parser.add_argument('--y', type=int,
+                        default=1,
+                        help='crop window y')
+    parser.add_argument('--width', type=int,
+                        help='crop window width')
+    parser.add_argument('--height', type=int,
+                        help='crop window height')
     args = parser.parse_args()
 
-    # Validate arguments
+    # Set default values and validate arguments
     #
     # input
     if os.path.splitext(args.input)[1] != '.rawm':
@@ -77,25 +85,59 @@ if __name__ == '__main__':
     # Validate the begin, end and step parameters
     if begin < 1 or begin > metadata.n_frames:
         sys.stderr.write('The --begin parameter must be in (1, n_frames).\n')
-        exit(2)
+        sys.exit(2)
     #
     # end
     end = args.end
-    # Determine end frame if it is set to the max value
-    if type(end) is not int:
+    if end is None:
         end = metadata.n_frames
     if end < 1 or end > metadata.n_frames:
         sys.stderr.write('The --end parameter must be in (1, n_frames).\n')
-        exit(2)
+        sys.exit(2)
     if end < begin:
         sys.stderr.write('The --end parameter must be greater or equal than --begin.\n')
-        exit(2)
+        sys.exit(2)
     #
     # step
     step = args.step
     if step < 1:
         sys.stderr.write('The --step parameter must be greater than zero.\n')
-        exit(2)
+        sys.exit(2)
+    #
+    # x
+    x = args.x
+    if x < 1 or x > metadata.width:
+        sys.stderr.write('The --x parameter must be in (1, image_width).\n')
+        sys.exit(2)
+    #
+    # y
+    y = args.y
+    if y < 1 or y > metadata.height:
+        sys.stderr.write('The --y parameter must be in (1, image_height).\n')
+        sys.exit(2)
+    #
+    # width
+    width = args.width
+    if width is None:
+        width = metadata.width - (x - 1)
+    if width < 1:
+        sys.stderr.write('The --width parameter must be greater or equal to 1.\n')
+        sys.exit(2)
+    if x + width - 1 > metadata.width:
+        sys.stderr.write('Cropping window right side is outside image boundaries.\n')
+        sys.exit(2)
+    #
+    # height
+    height = args.height
+    if height is None:
+        height = metadata.height - (y - 1)
+    if height < 1:
+        sys.stderr.write('The --height parameter must be greater or equal to 1.\n')
+        sys.exit(2)
+    if y + height - 1 > metadata.height:
+        sys.stderr.write('Cropping window bottom side is outside image boundaries.\n')
+        sys.exit(2)
+
 
     # Check that output files do not exist
     if os.path.exists(output + '.rawm'):
@@ -105,4 +147,5 @@ if __name__ == '__main__':
         sys.stderr.write('Output .raw file already exists.\n')
         sys.exit(1)
 
-    conversions.alter_movie(input, output, begin, end, step)
+    conversions.alter_movie(input, output, begin, end, step,
+                            x, y, width, height)
