@@ -1,7 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
- * Copyright 2016, 2017 Nicolas Bruot
+ * Copyright 2016-2018 Nicolas Bruot
  *
  *
  * CorrTrack is free software: you can redistribute it and/or modify
@@ -612,7 +612,7 @@ uint8_t* Movie::frameData8(const size_t i,
     int bitsShift = customBitDepth - 8;
     if (bitsPerSample == 8 && customBitDepth == 8)
         std::memcpy(data, frames8.at(i).pixelsData, sz);
-    else if (bitsPerSample == 8) // bitShift != 0
+    else if (bitsPerSample == 8) // bitsShift != 0
     {
         uint8_t* data8 = frames8.at(i).pixelsData;
         if (bitsShift > 0)
@@ -620,20 +620,20 @@ uint8_t* Movie::frameData8(const size_t i,
                 data[k] = data8[k] >> bitsShift;
         else // bitsShift < 0
             for (unsigned int k = 0; k < width * height; k++)
-                data[k] = data8[k] << -bitsShift;
+                data[k] = (data8[k] < (1 << customBitDepth)) ? data8[k] << -bitsShift : 255;
     }
     else // bitsPerSample = 16
     {
         uint16_t* data16 = frames16.at(i).pixelsData;
         if (bitsShift == 0)
             for (unsigned int k = 0; k < width * height; k++)
-                data[k] = (uint8_t) (data16[k]);
+                data[k] = (data16[k] < 1 << customBitDepth) ? (uint8_t) (data16[k]) : 255;
         else if (bitsShift > 0)
             for (unsigned int k = 0; k < width * height; k++)
-                data[k] = (uint8_t) (data16[k] >> bitsShift);
+                data[k] = (data16[k] < (1 << customBitDepth)) ? (uint8_t) (data16[k] >> bitsShift) : 255;
         else // bitsShift < 0
             for (unsigned int k = 0; k < width * height; k++)
-                data[k] = (uint8_t) (data16[k] << -bitsShift);
+                data[k] = (data16[k] < (1 << customBitDepth)) ? (uint8_t) (data16[k] << -bitsShift) : 255;
     }
     return data;
 }
@@ -647,23 +647,35 @@ uint8_t* Movie::frameData8(const size_t i,
     if (bitsPerSample == 8)
     {
         uint8_t* data8 = frames8.at(i).pixelsData;
-        uint8_t amplitude = maxValue - minValue;
+        int16_t amplitude = maxValue - minValue;
         for (unsigned int k = 0; k < width * height; k++)
         {
-            // Data type needs to hold 255 * uint8_t. Therefore, use uint16_t.
-            uint16_t val = (uint16_t) 255 * (data8[k] - minValue) / amplitude;
-            data[k] = (uint8_t) (val);
+            // Data type needs to hold 255 * uint8_t and negative values.
+            // Therefore, use int16_t.
+            int16_t val = 255 * (int16_t) (data8[k] - minValue) / amplitude;
+            if (val < 0)
+                data[k] = 0;
+            else if (val < 256)
+                data[k] = (uint8_t) (val);
+            else
+                data[k] = 255;
         }
     }
     else // bitsPerSample = 16
     {
         uint16_t* data16 = frames16.at(i).pixelsData;
-        uint16_t amplitude = maxValue - minValue;
+        int32_t amplitude = maxValue - minValue;
         for (unsigned int k = 0; k < width * height; k++)
         {
-            // Data type needs to hold 255 * uint16_t. Therefore, use uint32_t.
-            uint32_t val = (uint32_t) 255 * (data16[k] - minValue) / amplitude;
-            data[k] = (uint8_t) (val);
+            // Data type needs to hold 255 * uint16_t and negative values.
+            // Therefore, use int32_t.
+            int32_t val = 255 * (int32_t) (data16[k] - minValue) / amplitude;
+            if (val < 0)
+                data[k] = 0;
+            else if (val < 256)
+                data[k] = (uint8_t) (val);
+            else
+                data[k] = 255;
         }
     }
     return data;

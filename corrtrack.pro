@@ -1,6 +1,6 @@
 # This file is part of the particle tracking software CorrTrack.
 #
-# Copyright 2016, 2017 Nicolas Bruot
+# Copyright 2016-2018 Nicolas Bruot
 #
 #
 # CorrTrack is free software: you can redistribute it and/or modify
@@ -100,8 +100,10 @@ SOURCES += \
     main.cpp \
     corrtrackwindow.cpp \
     constants.cpp \
+    settings.cpp \
     zoomdialog.cpp \
     corrfilterdialog.cpp \
+    settingsdialog.cpp \
     okcanceldialog.cpp \
     movie/base/frame.cpp \
     math/math.cpp \
@@ -124,8 +126,10 @@ SOURCES += \
 HEADERS += \
     corrtrackwindow.h \
     constants.h \
+    settings.h \
     zoomdialog.h \
     corrfilterdialog.h \
+    settingsdialog.h \
     okcanceldialog.h \
     movie/base/frame.h \
     math/math.h \

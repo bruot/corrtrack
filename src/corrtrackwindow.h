@@ -1,7 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
- * Copyright 2016, 2017 Nicolas Bruot
+ * Copyright 2016-2018 Nicolas Bruot
  *
  *
  * CorrTrack is free software: you can redistribute it and/or modify
@@ -34,12 +34,16 @@
 #include <QSlider>
 #include <QObject>
 #include <QEvent>
+#include <QCloseEvent>
 #include <QTimer>
 #include <QThread>
 #include <QString>
+#include <QVector>
+#include <QRgb>
 #include <QWidget>
 #include <QGraphicsEllipseItem>
 #include "noscrollqgraphicsview.h"
+#include "settings.h"
 #include "movie/movie.h"
 #include "math/corrtrackanalyser.h"
 #include "openmovieworker.h"
@@ -60,8 +64,11 @@ public:
     };
 
 private:
+    Settings *settings;
+
     bool movieIsSet;
     IntensityMode intensityMode;
+    QVector<QRgb> colorTable;
     unsigned int bitDepth;
     uint16_t intensityMin;
     uint16_t intensityMax;
@@ -113,6 +120,7 @@ private:
     QAction *extractCurrentTiffAct;
     QAction *extractTiffsAct;
     QAction *closeAct;
+    QAction *settingsAct;
     QAction *exitAct;
     // View
     QAction *intensityAct;
@@ -140,6 +148,7 @@ private:
     void createMenus();
     void setMovieRelatedItemsEnabled(const bool state);
     void displayMessageBox(const QString text) const;
+    void updateColorTable();
     void updateFrameDisplay();
     int frameCoordinate(const int coordinate) const;
     int zoomedCoordinate(const int coordinate) const;
@@ -152,6 +161,7 @@ private slots:
     void extractCurrentTiff();
     void extractTiffs();
     void closeMovie();
+    void editSettings();
     // View
     void intensity();
     void zoom();
@@ -179,4 +189,5 @@ public:
 
 protected:
     virtual bool eventFilter(QObject *target, QEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 };
