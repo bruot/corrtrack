@@ -21,6 +21,7 @@
 
 #include <QVariant>
 #include <QMessageBox>
+#include <QDir>
 #include <QSettings>
 #include "constants.h"
 #include "settings.h"
@@ -32,6 +33,9 @@ Settings::Settings(QObject *parent) : QObject(parent)
                               constants::ORGANIZATION, constants::APP_NAME);
     highlightMinIntensity = getValue("Display/HighlightMinIntensity", true);
     highlightMaxIntensity = getValue("Display/HighlightMaxIntensity", true);
+    lastFolder = getValue("Folders/LastFolder", QDir::homePath());
+    lastMovieFolder = getValue("Folders/LastMovieFolder", QString());
+    lastFilterFolder = getValue("Folders/LastFilterFolder", QString());
 }
 
 
@@ -56,4 +60,7 @@ void Settings::saveSettings()
 {
     qsettings->setValue("Display/HighlightMinIntensity", highlightMinIntensity);
     qsettings->setValue("Display/HighlightMaxIntensity", highlightMaxIntensity);
+    qsettings->setValue("Folders/LastFolder", lastFolder);
+    qsettings->setValue("Folders/LastMovieFolder", lastMovieFolder);
+    qsettings->setValue("Folders/LastFilterFolder", lastFilterFolder);
 }

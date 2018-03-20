@@ -34,8 +34,18 @@ public:
     Settings(QObject *parent = 0);
     ~Settings();
 
+    // Part of the settings window
+    //
+    // Display
     bool highlightMinIntensity;
     bool highlightMaxIntensity;
+
+    // Hidden saved parameters
+    //
+    // Folders
+    QString lastFolder;
+    QString lastMovieFolder;
+    QString lastFilterFolder;
 
 public slots:
     void saveSettings();

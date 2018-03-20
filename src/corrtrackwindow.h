@@ -85,10 +85,6 @@ private:
     ExtractTiffsWorker* extractTiffsWorker;
     ProgressWindow* progressWindow;
 
-    QString lastFolder;
-    QString lastMovieFolder;
-    QString lastFilterFolder;
-
     QTimer *playTimer;
 
     QGraphicsScene *scene;

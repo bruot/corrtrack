@@ -33,7 +33,6 @@
 #include <QDoubleValidator>
 #include <QEvent>
 #include <QFileDialog>
-#include <QDir>
 #include <QWidget>
 #include <QGraphicsSceneMouseEvent>
 #include <QContextMenuEvent>
@@ -88,9 +87,6 @@ CorrTrackWindow::CorrTrackWindow(QWidget *parent)
       openMovieWorker{nullptr},
       extractTiffsWorker{nullptr},
       progressWindow{nullptr},
-      lastFolder{QDir::homePath()},
-      lastMovieFolder{QString()},
-      lastFilterFolder{QString()},
       playTimer{new QTimer(this)},
       scene{new QGraphicsScene(this)},
       frame{nullptr},
@@ -661,14 +657,14 @@ void CorrTrackWindow::openMovieWithDialog()
               return;
     }
 
-    QString folder = lastMovieFolder.isEmpty() ? lastFolder : lastMovieFolder;
+    QString folder = settings->lastMovieFolder.isEmpty() ? settings->lastFolder : settings->lastMovieFolder;
     fileName = QFileDialog::getOpenFileName(this,
         tr("Open File"), folder,
         tr("Movie and Image Files (*.rawm *.xiseq *.tif *.tiff *.png *.jpg *.bmp)"));
     if (fileName.isEmpty() || fileName.isNull())
         return;
-    lastMovieFolder = QFileInfo(fileName).path();
-    lastFolder = lastMovieFolder;
+    settings->lastMovieFolder = QFileInfo(fileName).path();
+    settings->lastFolder = settings->lastMovieFolder;
 
     openMovie(fileName);
 }
@@ -960,8 +956,8 @@ void CorrTrackWindow::corrFilter()
                                                     oldHeight,
                                                     filterFile,
                                                     oldFitRadius,
-                                                    lastFilterFolder,
-                                                    lastFolder,
+                                                    settings->lastFilterFolder,
+                                                    settings->lastFolder,
                                                     this);
 
     if (dialog->exec() == QDialog::Accepted)
@@ -970,8 +966,8 @@ void CorrTrackWindow::corrFilter()
         analyser->windowHeight = dialog->getFilterWindowHeight();
         filterFile = dialog->getFilterFile();
         analyser->fitRadius = dialog->getFitRadius();
-        lastFilterFolder = dialog->lastFilterFolder;
-        lastFolder = dialog->lastFolder;
+        settings->lastFilterFolder = dialog->lastFilterFolder;
+        settings->lastFolder = dialog->lastFolder;
     }
 
     if ((oldWidth != analyser->windowWidth)
