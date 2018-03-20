@@ -3,7 +3,7 @@
 
 # This file is part of the particle tracking software CorrTrack.
 #
-# Copyright 2016, 2017 Nicolas Bruot
+# Copyright 2016-2018 Nicolas Bruot
 #
 #
 # CorrTrack is free software: you can redistribute it and/or modify
@@ -26,7 +26,7 @@ This is used by deploy.py.
 """
 
 
-QT_VERSION = '5.8'
+QT_VERSION = '5.10'
 
 FILES = {
          'common': (
@@ -36,9 +36,9 @@ FILES = {
                     ('../utils/python/corrtrack/conversions.py', 'utils/python/corrtrack/conversions.py'),
                     ('../utils/python/folder2raw.py', 'utils/python/folder2raw.py'),
                     ('../utils/python/folder2xiseq.py', 'utils/python/folder2xiseq.py'),
-                    ('../../additions/sample_files/2.8/movie.rawm', 'examples/movie.rawm'),
-                    ('../../additions/sample_files/2.8/movie.raw', 'examples/movie.raw'),
-                    ('../../additions/sample_files/2.8/kernel.dat', 'examples/kernel.dat'),
+                    ('../../additions/sample_files/2.10/movie.rawm', 'examples/movie.rawm'),
+                    ('../../additions/sample_files/2.10/movie.raw', 'examples/movie.raw'),
+                    ('../../additions/sample_files/2.10/kernel.dat', 'examples/kernel.dat'),
                    ),
          'x86': (
                  ('C:/Qt/%s/msvc2015/bin/Qt5Core.dll' % QT_VERSION, ''),
