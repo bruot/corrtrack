@@ -1,7 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
- * Copyright 2016, 2017 Nicolas Bruot
+ * Copyright 2016-2018 Nicolas Bruot
  *
  *
  * CorrTrack is free software: you can redistribute it and/or modify
@@ -20,6 +20,7 @@
 
 
 #include <QApplication>
+#include <QCloseEvent>
 #include <QStatusBar>
 #include <QGraphicsView>
 #include <QGraphicsPixmapItem>
@@ -40,6 +41,8 @@
 #include <QMessageBox>
 #include <QMenuBar>
 #include <QImage>
+#include <QVector>
+#include <QRgb>
 #include <QFileInfo>
 #include <QGraphicsSceneWheelEvent>
 #include <QTimer>
@@ -51,6 +54,7 @@
 #include "intensitydialog.h"
 #include "zoomdialog.h"
 #include "corrfilterdialog.h"
+#include "settingsdialog.h"
 #include "math/math.h"
 #include "math/corrfilter.h"
 #include "math/point.h"
@@ -73,6 +77,7 @@ CorrTrackWindow::CorrTrackWindow(QWidget *parent)
       bitDepth{8},
       intensityMin{0},
       intensityMax{255},
+      colorTable(QVector<QRgb>(256)),
       zoomIndex{0},
       filterFile{QString()},
       currentTime{0.0},
@@ -102,6 +107,8 @@ CorrTrackWindow::CorrTrackWindow(QWidget *parent)
       speedCBox{new QComboBox(this)},
       frameIndexLabel{new QLabel(this)}
 {
+    settings = new Settings();
+
     const int squareButtonWidth = 40;
 
     pixmapItem->setAcceptHoverEvents(true);
@@ -165,6 +172,7 @@ CorrTrackWindow::CorrTrackWindow(QWidget *parent)
     w->setLayout(layout);
     setCentralWidget(w);
 
+    updateColorTable();
     updateZoom();
 
     createActions();
@@ -274,6 +282,12 @@ bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
         }
     }
     return QMainWindow::eventFilter(target, event);
+}
+
+void CorrTrackWindow::closeEvent(QCloseEvent *event)
+{
+    settings->saveSettings();
+    event->accept();
 }
 
 void CorrTrackWindow::addPoint(Point point)
@@ -563,6 +577,16 @@ void CorrTrackWindow::updateFrameIndex(const int frame)
     updateFrameDisplay();
 }
 
+void CorrTrackWindow::updateColorTable()
+{
+    for (int i = 0; i < 256; i++)
+        colorTable[i] = qRgb(i, i, i);
+    if (settings->highlightMinIntensity && intensityMode != IntensityMode::AutoVariable)
+        colorTable[0] = qRgb(0, 0, 255);
+    if (settings->highlightMaxIntensity && intensityMode != IntensityMode::AutoVariable)
+        colorTable[255] = qRgb(255, 0, 0);
+}
+
 void CorrTrackWindow::updateFrameDisplay()
 {
     if (movieIsSet)
@@ -585,8 +609,8 @@ void CorrTrackWindow::updateFrameDisplay()
         QImage image = QImage(data,
                               analyser->movie->width,
                               analyser->movie->height,
-                              analyser->movie->width,
                               QImage::Format_Indexed8);
+        image.setColorTable(colorTable);
         pixmapItem->setPixmap(QPixmap::fromImage(image));
         delete[] data;
         frameIndexLabel->setText(QString("%1 / %2").arg(currentFrameIndex).arg(analyser->movie->nFrames));
@@ -679,6 +703,31 @@ void CorrTrackWindow::closeMovie()
     fileNameLabel->setText("");
 
     setMovieRelatedItemsEnabled(false);
+}
+
+void CorrTrackWindow::editSettings()
+{
+    bool oldHighlightMinIntensity = settings->highlightMinIntensity;
+    bool oldHighlightMaxIntensity = settings->highlightMaxIntensity;
+
+    // Show settings dialog
+    SettingsDialog *dialog = new SettingsDialog(oldHighlightMinIntensity,
+                                                oldHighlightMaxIntensity,
+                                                this);
+
+    if (dialog->exec() == QDialog::Accepted)
+    {
+        settings->highlightMinIntensity = dialog->getHighlightMinIntensity();
+        settings->highlightMaxIntensity = dialog->getHighlightMaxIntensity();
+    }
+
+    if ((oldHighlightMinIntensity != settings->highlightMinIntensity)
+        | (oldHighlightMaxIntensity != settings->highlightMaxIntensity))
+    {
+        statusBar()->showMessage(tr("Settings changed."));
+        updateColorTable();
+        updateFrameDisplay();
+    }
 }
 
 bool CorrTrackWindow::validateCorrelation() const
@@ -877,6 +926,7 @@ void CorrTrackWindow::intensity()
             || intensityMax != oldIntensityMax)
     {
         statusBar()->showMessage(QString("Intensity settings changed."));
+        updateColorTable();
         updateFrameDisplay();
     }
 }
@@ -985,7 +1035,7 @@ void CorrTrackWindow::about()
         message.append(TARGET_VERSION);
         message.append(")");
     }
-    message.append("<br/><br/>Copyright (C) 2016, 2017 Nicolas Bruot<br/><br/>"
+    message.append("<br/><br/>Copyright (C) 2016-2018 Nicolas Bruot<br/><br/>"
                    "CorrTrack is released under the terms of the GNU General Public License (GPL) v3.<br/>"
                    "The source code is available at <a href=\"https://github.com/bruot/corrtrack/\">https://github.com/bruot/corrtrack/</a>.<br/><br/>"
                    "This program uses:"
@@ -1038,6 +1088,10 @@ void CorrTrackWindow::createActions()
     closeAct->setStatusTip(tr("Close the current file"));
     connect(closeAct, SIGNAL(triggered()), this, SLOT(closeMovie()));
 
+    settingsAct = new QAction(tr("Se&ttings"), this);
+    settingsAct->setStatusTip(tr("Program settings"));
+    connect(settingsAct, SIGNAL(triggered()), this, SLOT(editSettings()));
+
     exitAct = new QAction(tr("E&xit"), this);
     exitAct->setShortcuts(QKeySequence::Quit);
     exitAct->setStatusTip(tr("Exit the application"));
@@ -1084,6 +1138,8 @@ void CorrTrackWindow::createMenus()
     fileMenu->addAction(extractTiffsAct);
     fileMenu->addSeparator();
     fileMenu->addAction(closeAct);
+    fileMenu->addSeparator();
+    fileMenu->addAction(settingsAct);
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
 

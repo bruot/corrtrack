@@ -1,7 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
- * Copyright 2016, 2017 Nicolas Bruot
+ * Copyright 2016-2018 Nicolas Bruot
  *
  *
  * CorrTrack is free software: you can redistribute it and/or modify
@@ -31,6 +31,7 @@ namespace constants
     extern const char* const VERSION;
     extern const char* const TARGET_VERSION;
 
+    extern const char* const ORGANIZATION;
     extern const char* const APP_NAME;
 
     extern const double ZOOM_BASE;
