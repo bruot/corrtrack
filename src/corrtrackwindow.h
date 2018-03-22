@@ -146,8 +146,6 @@ private:
     void displayMessageBox(const QString text) const;
     void updateColorTable();
     void updateFrameDisplay();
-    int frameCoordinate(const int coordinate) const;
-    int zoomedCoordinate(const int coordinate) const;
 
 private slots:
     // File

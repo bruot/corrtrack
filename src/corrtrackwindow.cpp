@@ -189,24 +189,6 @@ CorrTrackWindow::~CorrTrackWindow()
 {
 }
 
-int CorrTrackWindow::frameCoordinate(const int coordinate) const
-{
-    /* Converts a distance in pixels on the zoomed scene to pixels on
-     * the frame.*/
-
-    int result = (double) coordinate / pow(constants::ZOOM_BASE, zoomIndex);
-    return result;
-}
-
-int CorrTrackWindow::zoomedCoordinate(const int coordinate) const
-{
-    /* Converts a distance in pixels on the frame to pixels on the
-     * zoomed scene.*/
-
-    int result = (double) coordinate * pow(constants::ZOOM_BASE, zoomIndex);
-    return result;
-}
-
 void CorrTrackWindow::onWindowLoaded()
 {
     if (QApplication::arguments().size() > 1)
@@ -225,8 +207,8 @@ bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
         {
             const QGraphicsSceneMouseEvent* const me = static_cast<const QGraphicsSceneMouseEvent*>(event);
             const QPointF position = me->scenePos();
-            int x = frameCoordinate((int) position.x());
-            int y = frameCoordinate((int) position.y());
+            int x = (int) position.x();
+            int y = (int) position.y();
             if (x >= 0 && x < (int) analyser->movie->width
                     && y >= 0 && y < (int) analyser->movie->height)
             {
@@ -252,8 +234,8 @@ bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
         {
             const QGraphicsSceneMouseEvent* const me = static_cast<const QGraphicsSceneMouseEvent*>(event);
             const QPointF position = me->scenePos();
-            int x = frameCoordinate((int) position.x());
-            int y = frameCoordinate((int) position.y());
+            int x = (int) position.x();
+            int y = (int) position.y();
             if (x >= 0 && x < (int) analyser->movie->width
                     && y >= 0 && y < (int) analyser->movie->height)
             {
@@ -291,13 +273,14 @@ void CorrTrackWindow::addPoint(Point point)
     // Add point to analyser and draw it.
     analyser->addPoint(point);
     // Add point
-    const qreal offset = - POINT_RADIUS + pow(constants::ZOOM_BASE, zoomIndex) / 2.0;
     QGraphicsEllipseItem *ellipse;
+    double diameter = 2.0 * POINT_RADIUS * pow(constants::ZOOM_BASE, -zoomIndex);
+    const qreal offset = -diameter / 2 + 0.5;
     ellipse = scene->addEllipse(0.0, 0.0,
-                                2.0 * POINT_RADIUS, 2.0 * POINT_RADIUS,
+                                diameter, diameter,
                                 POINT_QPEN, POINT_QBRUSH);
-    ellipse->setPos(zoomedCoordinate(point.x) + offset,
-                    zoomedCoordinate(point.y) + offset);
+    ellipse->setPos((double) point.x + offset,
+                    (double) point.y + offset);
     ellipse->setZValue(POINT_Z_VALUE);
     pointItems->push_back(ellipse);
     // Add inner rectangle
@@ -306,13 +289,13 @@ void CorrTrackWindow::addPoint(Point point)
     unsigned int width, height;
     width = analyser->windowWidth;
     height = analyser->windowHeight;
-    x0 = zoomedCoordinate(point.x - (int)(width / 2));
-    y0 = zoomedCoordinate(point.y - (int)(height / 2));
-    innerRect = new QGraphicsRectItem(0.0, 0.0,
-                                      zoomedCoordinate(width),
-                                      zoomedCoordinate(height));
+    x0 = (int) (point.x - width / 2);
+    y0 = (int) (point.y - height / 2);
+    innerRect = new QGraphicsRectItem(0.0, 0.0, width, height);
     innerRect->setPos(x0, y0);
-    innerRect->setPen(INNER_RECT_QPEN);
+    QPen irQPen = INNER_RECT_QPEN;
+    irQPen.setCosmetic(true);
+    innerRect->setPen(irQPen);
     innerRect->setZValue(INNER_RECT_Z_VALUE);
     scene->addItem(innerRect);
     innerRectItems->push_back(innerRect);
@@ -327,13 +310,13 @@ void CorrTrackWindow::addPoint(Point point)
     }
     width = analyser->windowWidth + filterWidth - 1;
     height = analyser->windowHeight + filterHeight - 1;
-    x0 = point.x - (int)(analyser->windowWidth / 2) - (int)(filterWidth / 2);
-    y0 = point.y - (int)(analyser->windowHeight / 2) - (int)(filterHeight / 2);
-    outerRect = new QGraphicsRectItem(0.0, 0.0,
-                                      zoomedCoordinate(width),
-                                      zoomedCoordinate(height));
-    outerRect->setPos(zoomedCoordinate(x0), zoomedCoordinate(y0));
-    outerRect->setPen(OUTER_RECT_QPEN);
+    x0 = (int) (point.x - analyser->windowWidth / 2 - filterWidth / 2);
+    y0 = (int) (point.y - analyser->windowHeight / 2 - filterHeight / 2);
+    outerRect = new QGraphicsRectItem(0.0, 0.0, width, height);
+    outerRect->setPos(x0, y0);
+    QPen orQPen = OUTER_RECT_QPEN;
+    orQPen.setCosmetic(true);
+    outerRect->setPen(orQPen);
     outerRect->setZValue(OUTER_RECT_Z_VALUE);
     scene->addItem(outerRect);
     outerRectItems->push_back(outerRect);
@@ -404,14 +387,17 @@ void CorrTrackWindow::updateZoom()
     if (movieIsSet)
     {
         const double factor = pow(constants::ZOOM_BASE, zoomIndex);
-        pixmapItem->setScale(factor);
-        view->setSceneRect(0, 0,
-                           factor * pixmapItem->pixmap().width(),
-                           factor * pixmapItem->pixmap().height());
+        view->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+        view->setTransform(QTransform(factor, 0.0, 0.0, factor, 0.0, 0.0));
+        view->setSceneRect(0.0, 0.0,
+                           pixmapItem->pixmap().width(),
+                           pixmapItem->pixmap().height());
     }
 
     // Update drawn points, rectangles and correlation maps
-    const qreal offset = - POINT_RADIUS + pow(constants::ZOOM_BASE, zoomIndex) / 2.0;
+    double diameter = 2.0 * POINT_RADIUS * pow(constants::ZOOM_BASE, -zoomIndex);
+    const qreal offset = -diameter / 2 + 0.5;
+
     QGraphicsEllipseItem *ellipse;
     QGraphicsRectItem *innerRect;
     const unsigned int width = analyser->windowWidth;
@@ -419,16 +405,13 @@ void CorrTrackWindow::updateZoom()
     for (unsigned int i = 0; i < pointItems->size(); i++)
     {
         ellipse = pointItems->at(i);
-        ellipse->setPos(zoomedCoordinate(analyser->getPoints()->at(i).x) + offset,
-                        zoomedCoordinate(analyser->getPoints()->at(i).y) + offset);
+        ellipse->setRect(0.0, 0.0, diameter, diameter);
+        ellipse->setPos(analyser->getPoints()->at(i).x + offset,
+                        analyser->getPoints()->at(i).y + offset);
         innerRect = innerRectItems->at(i);
-        innerRect->setPos(zoomedCoordinate(analyser->getPoints()->at(i).x
-                                           - (int)(width / 2)),
-                          zoomedCoordinate(analyser->getPoints()->at(i).y
-                                           - (int)(height / 2)));
-        innerRect->setRect(0.0, 0.0,
-                           zoomedCoordinate(width),
-                           zoomedCoordinate(height));
+        innerRect->setRect(0.0, 0.0, width, height);
+        innerRect->setPos((int) (analyser->getPoints()->at(i).x - width / 2),
+                          (int) (analyser->getPoints()->at(i).y - height / 2));
     }
 
     updateOuterRectItems();
@@ -449,18 +432,15 @@ void CorrTrackWindow::updateOuterRectItems()
     QGraphicsRectItem *outerRect;
     for (unsigned int i = 0; i < outerRectItems->size(); i++)
     {
-        const int x0 = analyser->getPoints()->at(i).x
-                - (int)(analyser->windowWidth / 2)
-                - (int)(filterWidth / 2);
-        const int y0 = analyser->getPoints()->at(i).y
-                - (int)(analyser->windowHeight / 2)
-                - (int)(filterHeight / 2);
+        const int x0 = (int) (analyser->getPoints()->at(i).x
+                - analyser->windowWidth / 2
+                - filterWidth / 2);
+        const int y0 = (int) (analyser->getPoints()->at(i).y
+                - analyser->windowHeight / 2
+                - filterHeight / 2);
         outerRect = outerRectItems->at(i);
-        outerRect->setRect(0.0, 0.0,
-                           zoomedCoordinate(width),
-                           zoomedCoordinate(height));
-        outerRect->setPos(zoomedCoordinate(x0),
-                          zoomedCoordinate(y0));
+        outerRect->setRect(0.0, 0.0, width, height);
+        outerRect->setPos(x0, y0);
     }
 }
 
@@ -473,9 +453,8 @@ void CorrTrackWindow::updateCorrelationMaps()
         if (item != nullptr)
         {
             const Point point = analyser->getPoints()->at(i);
-            item->setPos(zoomedCoordinate(point.x - analyser->windowWidth / 2),
-                         zoomedCoordinate(point.y - analyser->windowHeight / 2));
-            item->setScale(pow(constants::ZOOM_BASE, zoomIndex));
+            item->setPos((int) (point.x - analyser->windowWidth / 2),
+                         (int) (point.y - analyser->windowHeight / 2));
         }
     }
 }
