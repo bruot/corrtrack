@@ -26,7 +26,14 @@ This is used by deploy.py.
 """
 
 
-QT_VERSION = '5.10'
+QT_VERSION = '5.10.1'
+
+VS_INSTALL_DIR = 'C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC'
+
+QT_BIN_DIR = {
+              'x86': 'C:/Qt/%s/msvc2015/bin' % QT_VERSION,
+              'x64': 'C:/Qt/%s/msvc2015_64/bin' % QT_VERSION,
+             }
 
 FILES = {
          'common': (
@@ -34,6 +41,7 @@ FILES = {
                     ('../COPYING', ''),
                     ('../utils/python/corrtrack/__init__.py', 'utils/python/corrtrack/__init__.py'),
                     ('../utils/python/corrtrack/conversions.py', 'utils/python/corrtrack/conversions.py'),
+                    ('../utils/python/alterraw.py', 'utils/python/alterraw.py'),
                     ('../utils/python/folder2raw.py', 'utils/python/folder2raw.py'),
                     ('../utils/python/folder2xiseq.py', 'utils/python/folder2xiseq.py'),
                     ('../../additions/sample_files/2.10/movie.rawm', 'examples/movie.rawm'),
@@ -41,20 +49,12 @@ FILES = {
                     ('../../additions/sample_files/2.10/kernel.dat', 'examples/kernel.dat'),
                    ),
          'x86': (
-                 ('C:/Qt/%s/msvc2015/bin/Qt5Core.dll' % QT_VERSION, ''),
-                 ('C:/Qt/%s/msvc2015/bin/Qt5Gui.dll' % QT_VERSION, ''),
-                 ('C:/Qt/%s/msvc2015/bin/Qt5Widgets.dll' % QT_VERSION, ''),
-                 ('C:/Qt/%s/msvc2015/plugins/platforms/qwindows.dll' % QT_VERSION, 'platforms/qwindows.dll'),
                  ('C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x86/Microsoft.VC140.CRT/msvcp140.dll', ''),
                  ('C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x86/Microsoft.VC140.CRT/vcruntime140.dll', ''),
                  ('C:/lib/msvc2015_32/lib/tiff/tiff.dll', ''),
                  ('C:/lib/msvc2015_32/lib/zlib/zlib.dll', ''),
                 ),
          'x64': (
-                 ('C:/Qt/%s/msvc2015_64/bin/Qt5Core.dll' % QT_VERSION, ''),
-                 ('C:/Qt/%s/msvc2015_64/bin/Qt5Gui.dll' % QT_VERSION, ''),
-                 ('C:/Qt/%s/msvc2015_64/bin/Qt5Widgets.dll' % QT_VERSION, ''),
-                 ('C:/Qt/%s/msvc2015_64/plugins/platforms/qwindows.dll' % QT_VERSION, 'platforms/qwindows.dll'),
                  ('C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x64/Microsoft.VC140.CRT/msvcp140.dll', ''),
                  ('C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x64/Microsoft.VC140.CRT/vcruntime140.dll', ''),
                  ('C:/lib/msvc2015_64/lib/tiff/tiff.dll', ''),

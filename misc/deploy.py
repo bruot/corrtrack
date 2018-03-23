@@ -3,7 +3,7 @@
 
 # This file is part of the particle tracking software CorrTrack.
 #
-# Copyright 2016, 2017 Nicolas Bruot
+# Copyright 2016-2018 Nicolas Bruot
 #
 #
 # CorrTrack is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@ import errno
 if sys.version_info < (3, 0):
     from exceptions import OSError
 import shutil
+import subprocess
 
 import deploy_params
 
@@ -72,6 +73,19 @@ if __name__ == '__main__':
                                  os.path.basename(exec_path))
     shutil.copyfile(exec_path, exec_path_out)
     print(os.path.normpath(exec_path_out))
+
+    # Deploy with windeployqt
+    env = os.environ.copy()
+    env['VCINSTALLDIR'] = deploy_params.VS_INSTALL_DIR
+    # Prevents windeployqt from copying files from a wrong place:
+    env['PATH'] = ''
+    windeployqt_path = os.path.join(deploy_params.QT_BIN_DIR[arch], 'windeployqt.exe')
+    command = '%s --dir "%s" "%s"' % (windeployqt_path,
+                                      deploy_params.OUTPUT_DIR,
+                                      exec_path)
+    print('Executing: %s' % command)
+    sys.stdout.flush()
+    subprocess.call(command, env=env)
 
     copy_dependencies(deploy_params.FILES['common'], deploy_params.OUTPUT_DIR)
     copy_dependencies(deploy_params.FILES[arch], deploy_params.OUTPUT_DIR)
