@@ -3,3 +3,4 @@ corrtrack.pro.user
 corrtrack.pro.user.*
 **/__pycache__/**
 *.pyc
+*.autosave
