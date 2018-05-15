@@ -584,6 +584,7 @@ void CorrTrackWindow::updateFrameDisplay()
         QImage image = QImage(data,
                               analyser->movie->width,
                               analyser->movie->height,
+                              analyser->movie->width,
                               QImage::Format_Indexed8);
         image.setColorTable(colorTable);
         pixmapItem->setPixmap(QPixmap::fromImage(image));
