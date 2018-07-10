@@ -1,6 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
+ * Copyright 2018 Nicolas Bruot and CNRS
  * Copyright 2016, 2017 Nicolas Bruot
  *
  *
@@ -35,6 +36,7 @@ private:
     void deleteAllFrames();
     void loadRawmMovie();
     void loadXiseqMovie();
+    void loadPdsMovie();
     void loadImageMovie();
     void loadTiffMovie();
     boost::property_tree::ptree getPropertyTree(const std::string fileName) const;
@@ -68,6 +70,7 @@ public:
     {
         Image,
         Xiseq,
+        Pds,
         Rawm,
         Tiff,
     };

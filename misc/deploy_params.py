@@ -3,6 +3,7 @@
 
 # This file is part of the particle tracking software CorrTrack.
 #
+# Copyright 2018 Nicolas Bruot and CNRS
 # Copyright 2016-2018 Nicolas Bruot
 #
 #
@@ -26,7 +27,7 @@ This is used by deploy.py.
 """
 
 
-QT_VERSION = '5.10.1'
+QT_VERSION = '5.11.0'
 
 VS_INSTALL_DIR = 'C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC'
 

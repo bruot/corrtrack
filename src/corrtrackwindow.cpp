@@ -1,6 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
+ * Copyright 2018 Nicolas Bruot and CNRS
  * Copyright 2016-2018 Nicolas Bruot
  *
  *
@@ -640,7 +641,7 @@ void CorrTrackWindow::openMovieWithDialog()
     QString folder = settings->lastMovieFolder.isEmpty() ? settings->lastFolder : settings->lastMovieFolder;
     fileName = QFileDialog::getOpenFileName(this,
         tr("Open File"), folder,
-        tr("Movie and Image Files (*.rawm *.xiseq *.tif *.tiff *.png *.jpg *.bmp)"));
+        tr("Movie and Image Files (*.rawm *.xiseq *.pds *.tif *.tiff *.png *.jpg *.bmp)"));
     if (fileName.isEmpty() || fileName.isNull())
         return;
     settings->lastMovieFolder = QFileInfo(fileName).path();
@@ -1011,7 +1012,8 @@ void CorrTrackWindow::about()
         message.append(TARGET_VERSION);
         message.append(")");
     }
-    message.append("<br/><br/>Copyright (C) 2016-2018 Nicolas Bruot<br/><br/>"
+    message.append("<br/><br/>Copyright (C) 2018 Nicolas Bruot and CNRS<br/>"
+                   "Copyright (C) 2016-2018 Nicolas Bruot<br/><br/>"
                    "CorrTrack is released under the terms of the GNU General Public License (GPL) v3.<br/>"
                    "The source code is available at <a href=\"https://github.com/bruot/corrtrack/\">https://github.com/bruot/corrtrack/</a>.<br/><br/>"
                    "This program uses:"
@@ -1144,7 +1146,9 @@ void CorrTrackWindow::setMovieRelatedItemsEnabled(const bool state)
     filterMenu->setEnabled(state);
     if (state && movieIsSet)
     {
-        bool enable = analyser->movie->format == Movie::Format::Rawm;
+        bool enable =
+                analyser->movie->format == Movie::Format::Rawm
+                || analyser->movie->format == Movie::Format::Pds;
         extractCurrentTiffAct->setEnabled(enable);
         extractTiffsAct->setEnabled(enable);
         view->show();

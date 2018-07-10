@@ -1,6 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
+ * Copyright 2018 Nicolas Bruot and CNRS
  * Copyright 2016-2018 Nicolas Bruot
  *
  *
@@ -128,6 +129,11 @@ void Movie::openMovie(const std::string fileName)
     {
         format = Format::Xiseq;
         loadXiseqMovie();
+    }
+    else if (ext == ".pds")
+    {
+        format = Format::Pds;
+        loadPdsMovie();
     }
     else if (ext == ".tif" || ext == ".tiff")
     {
@@ -443,6 +449,127 @@ void Movie::loadXiseqMovie()
             }
         }
     }
+}
+
+void Movie::loadPdsMovie()
+{
+    uintmax_t fileSize;
+    try
+    {
+        fileSize = fs::file_size(fileName);
+    }
+    catch (fs::filesystem_error)
+    {
+        throw MovieException("Could not read .pds file.");
+    }
+
+    // First file size check. At this stage, it should at least contain the magic
+    // sequence (4 bytes) and the number of frames (4 bytes as uint_32t).
+    if (fileSize < 8)
+        throw MovieException("File size is inconsistent with PDS file format specification.");
+
+    std::ifstream is(fileName, std::ifstream::binary);
+    //
+    if (is)
+    {
+        // Read magic sequence
+        uint32_t magic;
+        is.read(reinterpret_cast<char *>(&magic), sizeof(magic));
+        if (magic != 0x04040404)
+             throw MovieException("Wrong magic in .pds file.");
+
+        // Read number of frames
+        uint32_t nFrames32;
+        is.read(reinterpret_cast<char *>(&nFrames32), sizeof(nFrames32));
+        nFrames = (unsigned int) nFrames32;
+
+        // Knowing the number of frames, the file size can be checked again.
+        //
+        // File contents:
+        //
+        //   - 4-byte magic sequence
+        //
+        //   - 4-byte representation of the number of frames
+        //
+        //   - 544-byte long header for frame 1
+        //
+        //   - frame 1 data
+        //
+        //   - 544-byte-long header for frame 2
+        //
+        //    - frame 2 data
+        //
+        //    - ...
+
+        // Get the frame width and height by looking at the first frame header
+        is.seekg((uintmax_t) 0x8 + 0x1ac);
+        float fWidth, fHeight;
+        is.read(reinterpret_cast<char *>(&fWidth), sizeof(fWidth));
+        is.read(reinterpret_cast<char *>(&fHeight), sizeof(fHeight));
+        unsigned int width = fWidth;
+        unsigned int height = fHeight;
+
+        is.seekg((uintmax_t) 0x8 + 0x1c0);
+        float floatPixelFmt;
+        is.read(reinterpret_cast<char *>(&floatPixelFmt), sizeof(floatPixelFmt));
+        MovieFormats::PixelFmt pixelFmt;
+        if (floatPixelFmt == 0.0)
+            pixelFmt = MovieFormats::PixelFmt::Mono8;
+        else if (floatPixelFmt == 1.0)
+            pixelFmt = MovieFormats::PixelFmt::Mono16;
+        else
+            throw MovieException("Pixel format is neither MONO8 nor MONO16.");
+        bitsPerSample = MovieFormats::PixelFmtBitsPerSample.at(pixelFmt);
+        bitDepth = MovieFormats::PixelFmtBitDepth.at(pixelFmt);
+
+        if (bitsPerSample == 8)
+            frames8 = std::vector<Frame<uint8_t>>(nFrames);
+        else // bitsPerSample == 16
+            frames16 = std::vector<Frame<uint16_t>>(nFrames);
+
+        if (fileSize != 8 + (584 + (size_t) width * (size_t) height * (bitsPerSample / 8)) * nFrames)
+            throw MovieException("Wrong .pds file size.");
+
+        size_t bufferSize = (size_t) width * (size_t) height * (bitsPerSample / 8);
+        unsigned char *buffer = new unsigned char[bufferSize];
+        is.seekg(0x8);
+        if (bitsPerSample == 8)
+        {
+            while (currIndex < nFrames)
+            {
+                is.seekg(584, std::ios::cur); // Skip frame header
+                is.read((char*) buffer, bufferSize);
+                // Although PDS movie contain timestamp data, these are stored
+                // as float, which is very bad. Using them in CorrTrack would
+                // require to convert that float into an integer with loss.
+                // Therefore, it is better not to include the timestamp.
+                frames8.at(currIndex).load(buffer, width, height, 0);
+                ++currIndex;
+            }
+        }
+        else // bitsPerSample == 16
+        {
+            uint16_t* buffer16 = new uint16_t[width * height];
+            while (currIndex < nFrames)
+            {
+                is.seekg(584, std::ios::cur); // Skip frame header
+                is.read((char*) buffer, bufferSize);
+                for (size_t k = 0; k < width * height; k++)
+                    buffer16[k] = ((uint16_t) (buffer[2*k]) << 8) + (uint16_t) (buffer[2*k+1]); // Big endian
+                // Although PDS movie contain timestamp data, these are stored
+                // as float, which is very bad. Using them in CorrTrack would
+                // require to convert that float into an integer with loss.
+                // Therefore, it is better not to include the timestamp.
+                frames16.at(currIndex).load(buffer16, width, height, 0);
+                ++currIndex;
+            }
+            delete buffer16;
+        }
+        delete buffer;
+    }
+    else
+        throw MovieException("Could not open .pds file.");
+    is.close();
 }
 
 void Movie::loadTiffMovie()

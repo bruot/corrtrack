@@ -1,6 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
+ * Copyright 2018 Nicolas Bruot and CNRS
  * Copyright 2016, 2017 Nicolas Bruot
  *
  *
@@ -26,6 +27,10 @@
 
 int main(int argc, char **argv)
 {
+    // The program is not designed for potentially very strange platforms:
+    assert(CHAR_BIT == 8);
+    assert(CHAR_BIT * sizeof(float) == 32);
+
     QApplication app (argc, argv);
 
     CorrTrackWindow window;
