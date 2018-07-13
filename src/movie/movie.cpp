@@ -77,7 +77,7 @@ Movie::Movie()
       framerate{NULL},
       frames8{std::vector<Frame<uint8_t>>()},
       frames16{std::vector<Frame<uint16_t>>()},
-      timestamps{std::vector<unsigned long>()},
+      timestamps{std::vector<uint64_t>()},
       currIndex{0}
 {
     format = Format::Image;
@@ -94,9 +94,24 @@ void Movie::deleteAllFrames()
         std::vector<Frame<uint8_t>>().swap(frames8); // Better than clear() as it frees the memory.
     else
         std::vector<Frame<uint16_t>>().swap(frames16);
-    std::vector<unsigned long>().swap(timestamps);
+    std::vector<uint64_t>().swap(timestamps);
 
     nFrames = 0;
+}
+
+double Movie::time64DiffToDouble(CINE_TIME64 time1, CINE_TIME64 time2)
+{
+    double timestamp = (double) (time2.seconds - time1.seconds);
+    if (time2.fractions >= time1.fractions)
+    {
+      timestamp += (double) (time2.fractions - time1.fractions) / pow(2.0, 32);
+    }
+    else
+    {
+      timestamp -= 1.0;
+      timestamp += (double) (4294967295 - (time1.fractions - time2.fractions)) / pow(2.0, 32);
+    }
+    return timestamp;
 }
 
 void Movie::openMovie(const std::string fileName)
@@ -113,7 +128,7 @@ void Movie::openMovie(const std::string fileName)
 
     this->fileName = fileName;
 
-    // CHeck that the file exists
+    // Check that the file exists
     if (!boost::filesystem::exists(fileName))
         throw MovieException("File does not exist.");
 
@@ -134,6 +149,11 @@ void Movie::openMovie(const std::string fileName)
     {
         format = Format::Pds;
         loadPdsMovie();
+    }
+    else if (ext == ".cine")
+    {
+        format = Format::Cine;
+        loadCineMovie();
     }
     else if (ext == ".tif" || ext == ".tiff")
     {
@@ -569,6 +589,199 @@ void Movie::loadPdsMovie()
     }
     else
         throw MovieException("Could not open .pds file.");
+    is.close();
+}
+
+void Movie::loadCineMovie()
+{
+    uintmax_t fileSize;
+    try
+    {
+        fileSize = fs::file_size(fileName);
+    }
+    catch (fs::filesystem_error)
+    {
+        throw MovieException("Could not read .cine file.");
+    }
+
+    // First file size check. At this stage, it should at least contain the
+    // CINEFILEHEADER and the BITMAPINFOHEADER.
+    if (fileSize < sizeof(CINE_CINEFILEHEADER) + sizeof(CINE_BITMAPINFOHEADER))
+        throw MovieException("File size is inconsistent with .cine file format specification.");
+
+    std::ifstream is(fileName, std::ifstream::binary);
+    //
+    if (is)
+    {
+        CINE_CINEFILEHEADER cineFileHeader;
+        is.read(reinterpret_cast<char *>(&cineFileHeader), sizeof(cineFileHeader));
+        if (cineFileHeader.Type != 0x4943) // Check for "CI" sequence
+            throw MovieException("Wrong magic in .cine file.");
+        if (cineFileHeader.Headersize != 44)
+            throw MovieException("Wrong file header size in .cine file.");
+        if (cineFileHeader.Compression != 0)
+            throw MovieException("Unsupported compression in .cine file.");
+        nFrames = (unsigned int) cineFileHeader.ImageCount;
+
+        CINE_BITMAPINFOHEADER biFileHeader;
+        is.seekg(cineFileHeader.OffImageHeader);
+        is.read(reinterpret_cast<char *>(&biFileHeader), sizeof(biFileHeader));
+        if (biFileHeader.biSize != 40)
+            throw MovieException("Wrong bitmap info header size in .cine file.");
+        width = (unsigned int) biFileHeader.biWidth;
+        height = (unsigned int) biFileHeader.biHeight;
+
+        bitsPerSample = (unsigned int) (biFileHeader.biBitCount);
+
+        MovieFormats::PixelFmt pixelFmt;
+        if (bitsPerSample == 8)
+            pixelFmt = MovieFormats::PixelFmt::Mono8;
+        else if (bitsPerSample == 16)
+            pixelFmt = MovieFormats::PixelFmt::Mono16;
+        else
+            throw MovieException("Unsupported pixel format in .cine file.");
+        bitsPerSample = MovieFormats::PixelFmtBitsPerSample.at(pixelFmt);
+        bitDepth = MovieFormats::PixelFmtBitDepth.at(pixelFmt);
+
+        if (biFileHeader.biCompression != 0)
+            throw MovieException("Unsupported bitmap info compression in .cine file.");
+        if (biFileHeader.biSizeImage != biFileHeader.biWidth *  biFileHeader.biHeight * (bitsPerSample / 8))
+            throw MovieException("Inconsistent image size in bitmap info in .cine file.");
+
+        CINE_SETUP setup;
+        is.seekg(cineFileHeader.OffSetup);
+        is.read(reinterpret_cast<char *>(&setup), sizeof(setup));
+        if (setup.Mark != 0x5453) // Check for "ST" sequence
+            throw MovieException("Corrupted setup header in .cine file.");
+
+        bool hasTimeOnly = false;
+        size_t timeOnlyOff = 0;
+        if (cineFileHeader.OffSetup + setup.Length < cineFileHeader.OffImageOffsets)
+        {
+            // File has tagged information blocks (these contain the timestamps)
+            size_t cursor = cineFileHeader.OffSetup + setup.Length;
+            while (cursor < cineFileHeader.OffImageOffsets)
+            {
+                is.seekg(cursor);
+                uint32_t blockSize;
+                is.read(reinterpret_cast<char *>(&blockSize), sizeof(blockSize));
+                uint16_t type;
+                is.read(reinterpret_cast<char *>(&type), sizeof(type));
+                uint16_t reserved;
+                is.read(reinterpret_cast<char *>(&reserved), sizeof(reserved));
+                if (type == 0x3ea)
+                {
+                    hasTimeOnly = true;
+                    timeOnlyOff = cursor + 8;
+                    break;
+                }
+                cursor += blockSize;
+            }
+        }
+
+        if (bitsPerSample == 8)
+            frames8 = std::vector<Frame<uint8_t>>(nFrames);
+        else // bitsPerSample == 16
+            frames16 = std::vector<Frame<uint16_t>>(nFrames);
+
+        size_t bufferSize = (size_t) width * (size_t) height * (bitsPerSample / 8);
+        unsigned char *buffer = new unsigned char[bufferSize];
+        CINE_TIME64 firstTime64;
+
+        if (bitsPerSample == 8)
+        {
+            while (currIndex < nFrames)
+            {
+                is.seekg(cineFileHeader.OffImageOffsets + currIndex * sizeof(uint64_t));
+                uint64_t imageOffset;
+                is.read(reinterpret_cast<char *>(&imageOffset), sizeof(imageOffset));
+                is.seekg(imageOffset);
+                uint32_t annotationSize;
+                is.read(reinterpret_cast<char *>(&annotationSize), sizeof(annotationSize));
+                is.seekg(annotationSize - sizeof(annotationSize), std::ios::cur); // Skip image header
+                is.read((char*) buffer, bufferSize);
+                if (is.fail())
+                    throw MovieException("Could not read frame data in .cine file.");
+
+                // After reading the last frame, check that the cursor is at the end of the file.
+                if (currIndex == nFrames - 1)
+                {
+                    if ((uintmax_t) is.tellg() < fileSize)
+                        throw MovieException("Cine file size is larger than expected.");
+                }
+
+                if (hasTimeOnly)
+                {
+                    is.seekg(timeOnlyOff + 8 * currIndex);
+                    CINE_TIME64 time64;
+                    is.read(reinterpret_cast<char *>(&time64), sizeof(time64));
+                    // Since storing the absolute timestamps would require too many digits to
+                    // be relevant, timestamps are recorded in nanoseconds relative to the
+                    // first frame.
+                    if (currIndex == 0)
+                        firstTime64 = time64;
+                    double timestamp = time64DiffToDouble(firstTime64, time64);
+                    frames8.at(currIndex).load(buffer, width, height, timestamp * 1000000000.0);
+                }
+                else
+                {
+                    // The file has no timestamps: set to zero.
+                    frames8.at(currIndex).load(buffer, width, height, 0);
+                }
+                ++currIndex;
+            }
+        }
+        else // bitsPerSample == 16
+        {
+            uint16_t* buffer16 = new uint16_t[width * height];
+            while (currIndex < nFrames)
+            {
+                is.seekg(cineFileHeader.OffImageOffsets + currIndex * sizeof(uint64_t));
+                uint64_t imageOffset;
+                is.read(reinterpret_cast<char *>(&imageOffset), sizeof(imageOffset));
+                is.seekg(imageOffset);
+                uint32_t annotationSize;
+                is.read(reinterpret_cast<char *>(&annotationSize), sizeof(annotationSize));
+                is.seekg(annotationSize - sizeof(annotationSize), std::ios::cur); // Skip image header
+                is.read((char*) buffer, bufferSize);
+                if (is.fail())
+                    throw MovieException("Could not read frame data in .cine file.");
+                for (size_t k = 0; k < width * height; k++)
+                    buffer16[k] = ((uint16_t) (buffer[2*k+1]) << 8) + (uint16_t) (buffer[2*k]); // Little endian
+
+                // After reading the last frame, check that the cursor is at the end of the file.
+                if (currIndex == nFrames - 1)
+                {
+                    if ((uintmax_t) is.tellg() < fileSize)
+                        throw MovieException("Cine file size larger than expected.");
+                }
+
+                if (hasTimeOnly)
+                {
+                    is.seekg(timeOnlyOff + 8 * currIndex);
+                    CINE_TIME64 time64;
+                    is.read(reinterpret_cast<char *>(&time64), sizeof(time64));
+                    // Since storing the absolute timestamps would require too many digits to
+                    // be relevant, timestamps are recorded in nanoseconds relative to the
+                    // first frame.
+                    if (currIndex == 0)
+                        firstTime64 = time64;
+                    double timestamp = time64DiffToDouble(firstTime64, time64);
+                    frames16.at(currIndex).load(buffer16, width, height, timestamp * 1000000000.0);
+                }
+                else
+                {
+                    // The file has no timestamps: set to zero.
+                    frames16.at(currIndex).load(buffer16, width, height, 0);
+                }
+                ++currIndex;
+            }
+            delete buffer16;
+        }
+        delete buffer;
+    }
+    else
+        throw MovieException("Could not open .cine file.");
     is.close();
 }
 

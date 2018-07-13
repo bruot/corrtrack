@@ -1,6 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
+ * Copyright 2018 Nicolas Bruot and CNRS
  * Copyright 2016, 2017 Nicolas Bruot
  *
  *
@@ -40,16 +41,16 @@ public:
 
     void load(const std::string filename,
               const MovieFormats::PixelFmt pixelFmt = MovieFormats::PixelFmt::Mono8,
-              const unsigned long timestamp = 0);
+              const uint64_t timestamp = 0);
     void load(const PixelDataType* const pixelsData,
               const uint32_t width, const uint32_t height,
-              const unsigned long timestamp = 0);
+              const uint64_t timestamp = 0);
 
     PixelDataType getPixelIntensity(const unsigned int x,
                                     const unsigned int y) const;
     void save(const std::string fileName) const;
 
-    unsigned long timestamp;
+    uint64_t timestamp;
     unsigned int width;
     unsigned int height;
     PixelDataType *pixelsData;

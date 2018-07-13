@@ -1,6 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
+ * Copyright 2018 Nicolas Bruot and CNRS
  * Copyright 2016, 2017 Nicolas Bruot
  *
  *
@@ -57,7 +58,7 @@ Frame<PixelDataType>::Frame()
 template <typename PixelDataType>
 void Frame<PixelDataType>::load(const std::string fileName,
                                 const MovieFormats::PixelFmt pixelFmt,
-                                const unsigned long timestamp)
+                                const uint64_t timestamp)
 {
     this->timestamp = timestamp;
 
@@ -141,7 +142,7 @@ void Frame<PixelDataType>::load(const std::string fileName,
 template <typename PixelDataType>
 void Frame<PixelDataType>::load(const PixelDataType * const pixelsData,
                                 const uint32_t width, const uint32_t height,
-                                const unsigned long timestamp)
+                                const uint64_t timestamp)
 {
     this->width = width;
     this->height = height;

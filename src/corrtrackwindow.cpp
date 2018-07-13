@@ -641,7 +641,7 @@ void CorrTrackWindow::openMovieWithDialog()
     QString folder = settings->lastMovieFolder.isEmpty() ? settings->lastFolder : settings->lastMovieFolder;
     fileName = QFileDialog::getOpenFileName(this,
         tr("Open File"), folder,
-        tr("Movie and Image Files (*.rawm *.xiseq *.pds *.tif *.tiff *.png *.jpg *.bmp)"));
+        tr("Movie and Image Files (*.rawm *.xiseq *.pds *.cine *.tif *.tiff *.png *.jpg *.bmp)"));
     if (fileName.isEmpty() || fileName.isNull())
         return;
     settings->lastMovieFolder = QFileInfo(fileName).path();
