@@ -3,6 +3,7 @@
 
 # This file is part of the particle tracking software CorrTrack.
 #
+# Copyright 2018 Nicolas Bruot and CNRS
 # Copyright 2016, 2017 Nicolas Bruot
 #
 #
@@ -161,7 +162,7 @@ def _get_image_filenames(folder):
     """Returns a nicely ordered list of filenames of the images in the folder."""
 
     filenames = os.listdir(folder)
-    img_filenames = [name for name in filenames if name.endswith(IMAGE_EXTENSIONS)]
+    img_filenames = [name for name in filenames if name.lower().endswith(IMAGE_EXTENSIONS)]
     return natsorted(img_filenames)
 
 
