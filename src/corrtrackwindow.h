@@ -1,6 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
+ * Copyright 2018 Nicolas Bruot and CNRS
  * Copyright 2016-2018 Nicolas Bruot
  *
  *
@@ -28,6 +29,7 @@
 #include <QActionGroup>
 #include <QLabel>
 #include <QMenu>
+#include <QPoint>
 #include <QPushButton>
 #include <QComboBox>
 #include <QDoubleValidator>
@@ -129,6 +131,10 @@ private:
     QAction *aboutAct;
     QAction *aboutQtAct;
 
+    QMenu *fileNameLabelMenu;
+    QAction *copyFileNameAct;
+    QAction *copyPathAct;
+
     void openMovie(const QString path);
     void updateZoom();
     void zoomIn();
@@ -166,6 +172,11 @@ private slots:
     // Help
     void about();
     void aboutQt() const;
+
+    void copyFileName();
+    void copyPath();
+
+    void showFileNameLabelContextMenu(const QPoint& pos);
 
     void onPlayButtonClick(const bool checked);
     void nextPlayedFrame();

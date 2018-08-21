@@ -1,5 +1,6 @@
 # This file is part of the particle tracking software CorrTrack.
 #
+# Copyright 2018 Nicolas Bruot and CNRS
 # Copyright 2016-2018 Nicolas Bruot
 #
 #
@@ -115,6 +116,7 @@ SOURCES += \
     io/exceptions/ioexception.cpp \
     movie/movie.cpp \
     movieintensityminmaxworker.cpp \
+    nomenuiconsstyle.cpp \
     noscrollqgraphicsview.cpp \
     analyseworker.cpp \
     progresswindow.cpp \
@@ -141,6 +143,7 @@ HEADERS += \
     io/exceptions/ioexception.h \
     movie/movie.h \
     movieintensityminmaxworker.h \
+    nomenuiconsstyle.h \
     noscrollqgraphicsview.h \
     analyseworker.h \
     progresswindow.h \

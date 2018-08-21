@@ -27,6 +27,7 @@
 #include <QGraphicsPixmapItem>
 #include <QBoxLayout>
 #include <QSlider>
+#include <QString>
 #include <QStringList>
 #include <QPushButton>
 #include <QComboBox>
@@ -46,6 +47,8 @@
 #include <QFileInfo>
 #include <QGraphicsSceneWheelEvent>
 #include <QTimer>
+#include <QPoint>
+#include <QClipboard>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 #include "constants.h"
@@ -65,6 +68,7 @@
 #include "openmovieworker.h"
 #include "analyseworker.h"
 #include "extracttiffsworker.h"
+#include "nomenuiconsstyle.h"
 
 
 using namespace constants;
@@ -678,6 +682,9 @@ void CorrTrackWindow::closeMovie()
 
     frameIndexLabel->setText(QString(""));
     fileNameLabel->setText("");
+    disconnect(fileNameLabel, SIGNAL(customContextMenuRequested(const QPoint&)),
+               this, SLOT(showFileNameLabelContextMenu(const QPoint&)));
+    fileNameLabel->setContextMenuPolicy(Qt::NoContextMenu);
 
     setMovieRelatedItemsEnabled(false);
 }
@@ -807,6 +814,9 @@ void CorrTrackWindow::onOpenMovieFinished(const QString& fileName,
         intensityMode = IntensityMode::BitDepth;
         QFileInfo fileInfo = QFileInfo(fileName);
         fileNameLabel->setText(fileInfo.fileName());
+        fileNameLabel->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(fileNameLabel, SIGNAL(customContextMenuRequested(const QPoint&)),
+                this, SLOT(showFileNameLabelContextMenu(const QPoint&)));
         QString message = QString("Loaded %1.").arg(fileInfo.fileName());
         view->show();
         statusBar()->showMessage(message);
@@ -1103,6 +1113,12 @@ void CorrTrackWindow::createActions()
     aboutQtAct->setStatusTip(tr("Show the Qt library's About box"));
     connect(aboutQtAct, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
     connect(aboutQtAct, SIGNAL(triggered()), this, SLOT(aboutQt()));
+
+    copyFileNameAct = new QAction(tr("Copy filename"), this);
+    connect(copyFileNameAct, SIGNAL(triggered()), this, SLOT(copyFileName()));
+
+    copyPathAct = new QAction(tr("Copy path"), this);
+    connect(copyPathAct, SIGNAL(triggered()), this, SLOT(copyPath()));
 }
 
 void CorrTrackWindow::createMenus()
@@ -1134,6 +1150,11 @@ void CorrTrackWindow::createMenus()
     helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(aboutAct);
     helpMenu->addAction(aboutQtAct);
+
+    fileNameLabelMenu = new QMenu(this);
+    fileNameLabelMenu->setStyle(new NoMenuIconsStyle);
+    fileNameLabelMenu->addAction(copyFileNameAct);
+    fileNameLabelMenu->addAction(copyPathAct);
 }
 
 void CorrTrackWindow::setMovieRelatedItemsEnabled(const bool state)
@@ -1164,4 +1185,22 @@ void CorrTrackWindow::setMovieRelatedItemsEnabled(const bool state)
     closeAct->setEnabled(state);
 
     updatePointsCtrlMenuItems();
+}
+
+void CorrTrackWindow::showFileNameLabelContextMenu(const QPoint& pos)
+{
+    fileNameLabelMenu->exec(fileNameLabel->mapToGlobal(pos));
+}
+
+void CorrTrackWindow::copyFileName()
+{
+    QFileInfo fileInfo = QFileInfo(analyser->movie->fileName.c_str());
+    QClipboard *c = QApplication::clipboard();
+    c->setText(fileInfo.fileName());
+}
+
+void CorrTrackWindow::copyPath()
+{
+    QClipboard *c = QApplication::clipboard();
+    c->setText(QString(analyser->movie->fileName.c_str()));
 }
