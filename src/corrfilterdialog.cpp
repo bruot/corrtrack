@@ -19,13 +19,18 @@
  */
 
 
-#include "corrfilterdialog.h"
 #include <QLabel>
 #include <QPushButton>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QFileDialog>
 #include <QDir>
+#include <QIntValidator>
+#include <QMessageBox>
+#include <QString>
+#include <QDoubleValidator>
+#include "corrfilterdialog.h"
+#include "constants.h"
 
 
 CorrFilterDialog::CorrFilterDialog(const unsigned int filterWindowWidth,
@@ -44,6 +49,20 @@ CorrFilterDialog::CorrFilterDialog(const unsigned int filterWindowWidth,
       lastFolder{newLastFolder}
 {
     setWindowTitle("Correlation Filter");
+
+    QIntValidator *widthValidator = new QIntValidator(1,
+                                                      constants::FILTER_WIDTH_MAX_VALUE,
+                                                      this);
+    filterWindowWidthLE->setValidator(widthValidator);
+    QIntValidator *heightValidator = new QIntValidator(1,
+                                                       constants::FILTER_HEIGHT_MAX_VALUE,
+                                                       this);
+    filterWindowHeightLE->setValidator(heightValidator);
+    QDoubleValidator *fitRadiusValidator = new QDoubleValidator(0.0,
+                                                                constants::FILTER_FIT_RADIUS_MAX_VALUE,
+                                                                constants::FILTER_FIT_RADIUS_MAX_DECIMALS,
+                                                                this);
+    fitRadiusLE->setValidator(fitRadiusValidator);
 
     QLabel *filterWindowLabel = new QLabel("Correlation window");
     QLabel *filterWindowWidthLabel = new QLabel("Width (px)");
@@ -126,4 +145,37 @@ double CorrFilterDialog::getFitRadius() const
 QString CorrFilterDialog::getFilterFile() const
 {
     return filterFileLE->text();
+}
+
+void CorrFilterDialog::ok()
+{
+    // Validate fields
+    QMessageBox *msgBox = new QMessageBox(this);
+    int pos;
+
+    pos = filterWindowWidthLE->cursorPosition();
+    if (filterWindowWidthLE->validator()->validate(filterWindowWidthLE->text(), pos) != QValidator::Acceptable)
+    {
+        msgBox->setText(QString("Filter width value outside acceptable range (1-%1).").arg(constants::FILTER_WIDTH_MAX_VALUE));
+        msgBox->exec();
+        return;
+    }
+
+    pos = filterWindowHeightLE->cursorPosition();
+    if (filterWindowHeightLE->validator()->validate(filterWindowHeightLE->text(), pos) != QValidator::Acceptable)
+    {
+        msgBox->setText(QString("Filter height value outside acceptable range (1-%1).").arg(constants::FILTER_HEIGHT_MAX_VALUE));
+        msgBox->exec();
+        return;
+    }
+
+    pos = fitRadiusLE->cursorPosition();
+    if (fitRadiusLE->validator()->validate(fitRadiusLE->text(), pos) != QValidator::Acceptable)
+    {
+        msgBox->setText(QString("Fit radius value outside acceptable range (0-%1).").arg(constants::FILTER_FIT_RADIUS_MAX_VALUE));
+        msgBox->exec();
+        return;
+    }
+
+    return OKCancelDialog::ok();
 }

@@ -64,4 +64,9 @@ namespace constants
     extern const int BIT_DEPTH_MIN_VALUE;
     extern const int BIT_DEPTH_MAX_VALUE;
     extern const int INTENSITY_MAX_VALUE;
+
+    extern const int FILTER_WIDTH_MAX_VALUE;
+    extern const int FILTER_HEIGHT_MAX_VALUE;
+    extern const double FILTER_FIT_RADIUS_MAX_VALUE;
+    extern const int FILTER_FIT_RADIUS_MAX_DECIMALS;
 }

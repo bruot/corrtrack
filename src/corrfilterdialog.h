@@ -40,6 +40,7 @@ private:
 
 private slots:
     void chooseFilterFile();
+    void ok() override;
 
 public:
     explicit CorrFilterDialog(const unsigned int filterWindowWidth,

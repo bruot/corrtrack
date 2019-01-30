@@ -22,6 +22,7 @@
 #include "constants.h"
 
 
+#include <limits>
 #include <QPen>
 #include <QBrush>
 
@@ -64,4 +65,9 @@ namespace constants
     const int BIT_DEPTH_MIN_VALUE = 1;
     const int BIT_DEPTH_MAX_VALUE = 16;
     const int INTENSITY_MAX_VALUE = 65535;
+
+    const int FILTER_WIDTH_MAX_VALUE = std::numeric_limits<int>::max();
+    const int FILTER_HEIGHT_MAX_VALUE = std::numeric_limits<int>::max();
+    const double FILTER_FIT_RADIUS_MAX_VALUE = std::numeric_limits<double>::max();
+    const int FILTER_FIT_RADIUS_MAX_DECIMALS = 1000;
 }

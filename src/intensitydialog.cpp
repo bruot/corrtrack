@@ -199,6 +199,40 @@ void IntensityDialog::updateIntensityWidgets()
 
 void IntensityDialog::ok()
 {
+    // Validate single fields
+
+    if (minMaxRB->isChecked())
+    {
+        QMessageBox *msgBox = new QMessageBox(this);
+        int pos;
+
+        pos = minLE->cursorPosition();
+        if (minLE->validator()->validate(minLE->text(), pos) != QValidator::Acceptable)
+        {
+            msgBox->setText(QString("Min intensity outside acceptable range (0-%1).").arg(constants::INTENSITY_MAX_VALUE));
+            msgBox->exec();
+            return;
+        }
+
+        pos = maxLE->cursorPosition();
+        if (maxLE->validator()->validate(maxLE->text(), pos) != QValidator::Acceptable)
+        {
+            msgBox->setText(QString("Max intensity outside acceptable range (0-%1).").arg(constants::INTENSITY_MAX_VALUE));
+            msgBox->exec();
+            return;
+        }
+
+        pos = bitDepthLE->cursorPosition();
+        if (bitDepthLE->validator()->validate(bitDepthLE->text(), pos) != QValidator::Acceptable)
+        {
+            msgBox->setText(QString("Bit depth outside acceptable range (%1-%2).").arg(constants::BIT_DEPTH_MIN_VALUE).arg(constants::BIT_DEPTH_MAX_VALUE));
+            msgBox->exec();
+            return;
+        }
+    }
+
+    // Validate fields combinations
+
     if (minMaxRB->isChecked() && (getIntensityMin() >= getIntensityMax()))
     {
         QMessageBox msgBox;
@@ -206,6 +240,7 @@ void IntensityDialog::ok()
         msgBox.exec();
         return;
     }
+
     return OKCancelDialog::ok();
 }
 

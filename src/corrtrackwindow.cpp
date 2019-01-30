@@ -902,9 +902,16 @@ void CorrTrackWindow::intensity()
     {
         intensityMode = dialog->getIntensityMode();
         if (intensityMode == IntensityMode::BitDepth)
-                bitDepth = dialog->getBitDepth();
-        intensityMin = dialog->getIntensityMin();
-        intensityMax = dialog->getIntensityMax();
+        {
+            bitDepth = dialog->getBitDepth();
+            intensityMin = dialog->getIntensityMin();
+            intensityMax = dialog->getIntensityMax();
+        }
+        else if (intensityMode == IntensityMode::MinMax)
+        {
+            intensityMin = dialog->getIntensityMin();
+            intensityMax = dialog->getIntensityMax();
+        }
     }
 
     // Apply new intensity settings
