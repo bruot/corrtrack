@@ -1,6 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
+ * Copyright 2019 Nicolas Bruot and CNRS
  * Copyright 2016-2018 Nicolas Bruot
  *
  *
@@ -44,6 +45,7 @@ namespace constants
     extern const QBrush POINT_QBRUSH;
     extern const QPen INNER_RECT_QPEN;
     extern const QPen OUTER_RECT_QPEN;
+    extern const QPen LINE_QPEN;
 
     extern const qreal POINT_Z_VALUE;
     extern const qreal INNER_RECT_Z_VALUE;

@@ -1,6 +1,6 @@
 # This file is part of the particle tracking software CorrTrack.
 #
-# Copyright 2018 Nicolas Bruot and CNRS
+# Copyright 2018-2019 Nicolas Bruot and CNRS
 # Copyright 2016-2018 Nicolas Bruot
 #
 #
@@ -152,3 +152,6 @@ HEADERS += \
     intensitydialog.h \
     movie/base/movieformats.h \
     movie/base/version.h
+
+RESOURCES += \
+    resources.qrc

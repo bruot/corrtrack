@@ -1,7 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
- * Copyright 2018 Nicolas Bruot and CNRS
+ * Copyright 2018-2019 Nicolas Bruot and CNRS
  * Copyright 2016-2018 Nicolas Bruot
  *
  *
@@ -21,6 +21,7 @@
 
 
 #include <QApplication>
+#include <QActionGroup>
 #include <QCloseEvent>
 #include <QStatusBar>
 #include <QGraphicsView>
@@ -37,9 +38,12 @@
 #include <QFileDialog>
 #include <QWidget>
 #include <QGraphicsSceneMouseEvent>
+#include <QGraphicsLineItem>
 #include <QContextMenuEvent>
 #include <QDialog>
+#include <QIcon>
 #include <QMessageBox>
+#include <QMenu>
 #include <QMenuBar>
 #include <QImage>
 #include <QVector>
@@ -48,6 +52,7 @@
 #include <QGraphicsSceneWheelEvent>
 #include <QTimer>
 #include <QPoint>
+#include <QPointF>
 #include <QClipboard>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
@@ -86,6 +91,7 @@ CorrTrackWindow::CorrTrackWindow(QWidget *parent)
       filterFile{QString()},
       currentTime{0.0},
       currentFrameIndex{1},
+      isDrawingLine{false},
       analyser{new CorrTrackAnalyser},
       analyseWorker{nullptr},
       taskThread{nullptr},
@@ -97,6 +103,7 @@ CorrTrackWindow::CorrTrackWindow(QWidget *parent)
       frame{nullptr},
       view{new NoScrollQGraphicsView(this)},
       pixmapItem{new QGraphicsPixmapItem()},
+      line{nullptr},
       pointItems{new std::vector<QGraphicsEllipseItem*>()},
       innerRectItems{new std::vector<QGraphicsRectItem*>()},
       outerRectItems{new std::vector<QGraphicsRectItem*>()},
@@ -178,6 +185,8 @@ CorrTrackWindow::CorrTrackWindow(QWidget *parent)
 
     createActions();
     createMenus();
+    createToolBars();
+
     setMovieRelatedItemsEnabled(false);
 
     connect(speedCBox, SIGNAL(currentTextChanged(const QString)),
@@ -204,6 +213,14 @@ void CorrTrackWindow::onWindowLoaded()
     }
 }
 
+QMenu* CorrTrackWindow::createPopupMenu()
+{
+    // Disable imageToolBar context menu
+    QMenu* cleanMenu = QMainWindow::createPopupMenu();
+    cleanMenu->removeAction(imageToolBar->toggleViewAction());
+    return cleanMenu;
+}
+
 bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
 {
     if (target == scene)
@@ -217,8 +234,21 @@ bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
             if (x >= 0 && x < (int) analyser->movie->width
                     && y >= 0 && y < (int) analyser->movie->height)
             {
-                Point point(x, y);
-                addPoint(point);
+                if (lineToolAct->isChecked())
+                {
+                    isDrawingLine = true;
+                    if (line) scene->removeItem(line);
+                    line = new QGraphicsLineItem(pixmapItem);
+                    QPen lQPen = LINE_QPEN;
+                    lQPen.setCosmetic(true);
+                    line->setPen(lQPen);
+                    line->setPos(position);
+                }
+                else // track area tool
+                {
+                    Point point(x, y);
+                    addPoint(point);
+                }
             }
         }
         else if (event->type() == QEvent::GraphicsSceneWheel)
@@ -244,6 +274,21 @@ bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
             if (x >= 0 && x < (int) analyser->movie->width
                     && y >= 0 && y < (int) analyser->movie->height)
             {
+                QString lengthStr = QString("");
+                if (isDrawingLine)
+                {
+                    line->setLine(0, 0,
+                                  me->scenePos().x() - line->x(),
+                                  me->scenePos().y() - line->y());
+                }
+                if (line)
+                {
+                    double length = pow(pow(line->line().dx(), 2)
+                                        + pow(line->line().dy(), 2),
+                                        0.5);
+                    lengthStr = QString(", l = %1").arg(length);
+                }
+
                 // If this event is triggered, movie is necessarily set.
                 uint16_t value;
                 if (analyser->movie->bitsPerSample == 8)
@@ -256,11 +301,27 @@ bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
                     Frame<uint16_t>* frame = &(analyser->movie->frames16.at(currentFrameIndex - 1));
                     value = frame->getPixelIntensity(x, y);
                 }
-                statusBar()->showMessage(QString("(%1, %2), value=%3").arg(x + 1).arg(y + 1).arg(value));
+                statusBar()->showMessage(QString("(%1, %2), value=%3").arg(x + 1).arg(y + 1).arg(value)
+                                         + lengthStr);
             }
             else
             {
                 statusBar()->clearMessage();
+            }
+        }
+        else if (event->type() == QEvent::GraphicsSceneMouseRelease)
+        {
+            if (isDrawingLine)
+            {
+                // Remove the segment if it is of length zero (so that just
+                // clicking on the scene removes the last drawn line).
+                if (line->line().dx() == 0 && line->line().dy() == 0)
+                {
+                    scene->removeItem(line);
+                    line = nullptr;
+                }
+
+                isDrawingLine = false;
             }
         }
     }
@@ -679,6 +740,9 @@ void CorrTrackWindow::closeMovie()
     // Clear display
     removeAllPoints();
     pixmapItem->setPixmap(QPixmap());
+    if (line) scene->removeItem(line);
+    line = nullptr;
+    isDrawingLine = false;
 
     frameIndexLabel->setText(QString(""));
     fileNameLabel->setText("");
@@ -1029,7 +1093,7 @@ void CorrTrackWindow::about()
         message.append(TARGET_VERSION);
         message.append(")");
     }
-    message.append("<br/><br/>Copyright (C) 2018 Nicolas Bruot and CNRS<br/>"
+    message.append("<br/><br/>Copyright (C) 2018-2019 Nicolas Bruot and CNRS<br/>"
                    "Copyright (C) 2016-2018 Nicolas Bruot<br/><br/>"
                    "CorrTrack is released under the terms of the GNU General Public License (GPL) v3.<br/>"
                    "The source code is available at <a href=\"https://github.com/bruot/corrtrack/\">https://github.com/bruot/corrtrack/</a>.<br/><br/>"
@@ -1126,6 +1190,19 @@ void CorrTrackWindow::createActions()
 
     copyPathAct = new QAction(tr("Copy path"), this);
     connect(copyPathAct, SIGNAL(triggered()), this, SLOT(copyPath()));
+
+    lineToolAct = new QAction(QIcon(":/buttons/line_tool.png"),
+                              tr("Distance measurement"), this);
+    lineToolAct->setCheckable(true);
+    lineToolAct->setChecked(true);
+
+    trackingAreaToolAct = new QAction(QIcon(":/buttons/track_area_tool.png"),
+                                      tr("Set tracking areas"), this);
+    trackingAreaToolAct->setCheckable(true);
+
+    QActionGroup *imageToolGroup = new QActionGroup(this);
+    imageToolGroup->addAction(lineToolAct);
+    imageToolGroup->addAction(trackingAreaToolAct);
 }
 
 void CorrTrackWindow::createMenus()
@@ -1166,6 +1243,7 @@ void CorrTrackWindow::createMenus()
 
 void CorrTrackWindow::setMovieRelatedItemsEnabled(const bool state)
 {
+    imageToolBar->setEnabled(state);
     movieSlider->setEnabled(state);
     speedCBox->setEnabled(state);
     playButton->setEnabled(state);
@@ -1192,6 +1270,13 @@ void CorrTrackWindow::setMovieRelatedItemsEnabled(const bool state)
     closeAct->setEnabled(state);
 
     updatePointsCtrlMenuItems();
+ }
+
+void CorrTrackWindow::createToolBars()
+{
+    imageToolBar = addToolBar(tr("Image tools"));
+    imageToolBar->addAction(lineToolAct);
+    imageToolBar->addAction(trackingAreaToolAct);
 }
 
 void CorrTrackWindow::showFileNameLabelContextMenu(const QPoint& pos)

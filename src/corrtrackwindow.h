@@ -1,7 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
- * Copyright 2018 Nicolas Bruot and CNRS
+ * Copyright 2018-2019 Nicolas Bruot and CNRS
  * Copyright 2016-2018 Nicolas Bruot
  *
  *
@@ -33,12 +33,15 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QDoubleValidator>
+#include <QGraphicsLineItem>
 #include <QSlider>
 #include <QObject>
+#include <QMenu>
 #include <QEvent>
 #include <QCloseEvent>
 #include <QTimer>
 #include <QThread>
+#include <QToolBar>
 #include <QString>
 #include <QVector>
 #include <QRgb>
@@ -80,6 +83,8 @@ private:
     double currentTime;
     size_t currentFrameIndex;
 
+    bool isDrawingLine;
+
     CorrTrackAnalyser *analyser;
     AnalyseWorker* analyseWorker;
     QThread *taskThread;
@@ -93,6 +98,7 @@ private:
     QGraphicsRectItem *frame;
     NoScrollQGraphicsView *view;
     QGraphicsPixmapItem *pixmapItem;
+    QGraphicsLineItem *line;
 
     std::vector<QGraphicsEllipseItem*> *pointItems;
     std::vector<QGraphicsRectItem*> *innerRectItems;
@@ -110,7 +116,7 @@ private:
     QMenu *viewMenu;
     QMenu *filterMenu;
     QMenu *helpMenu;
-    QActionGroup *alignmentGroup;
+    QToolBar *imageToolBar;
     // File
     QAction *openAct;
     QAction *testCorrAct;
@@ -130,6 +136,9 @@ private:
     // Help
     QAction *aboutAct;
     QAction *aboutQtAct;
+    // Image toolbar
+    QAction *lineToolAct;
+    QAction *trackingAreaToolAct;
 
     QMenu *fileNameLabelMenu;
     QAction *copyFileNameAct;
@@ -148,6 +157,7 @@ private:
     void addPoint(Point);
     void createActions();
     void createMenus();
+    void createToolBars();
     void setMovieRelatedItemsEnabled(const bool state);
     void displayMessageBox(const QString text) const;
     void updateColorTable();
@@ -191,6 +201,8 @@ private slots:
 public:
     explicit CorrTrackWindow(QWidget *parent = 0);
     ~CorrTrackWindow();
+
+    virtual QMenu* createPopupMenu() override;
 
 protected:
     virtual bool eventFilter(QObject *target, QEvent *event) override;
