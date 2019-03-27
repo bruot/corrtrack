@@ -286,7 +286,7 @@ bool CorrTrackWindow::eventFilter(QObject *target, QEvent *event)
                     double length = pow(pow(line->line().dx(), 2)
                                         + pow(line->line().dy(), 2),
                                         0.5);
-                    lengthStr = QString(", l = %1").arg(length);
+                    lengthStr = QString(", length=%1").arg(length);
                 }
 
                 // If this event is triggered, movie is necessarily set.
