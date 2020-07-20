@@ -31,7 +31,7 @@
 namespace constants
 {
     const char* const VERSION = "2.13";
-    const char* const TARGET_VERSION = "2.13";
+    const char* const TARGET_VERSION = "2.14";
 
     const char* const ORGANIZATION = "CorrTrack";
     const char* const APP_NAME = "CorrTrack";
