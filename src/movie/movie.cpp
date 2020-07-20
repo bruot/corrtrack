@@ -1,7 +1,7 @@
 /*
  * This file is part of the particle tracking software CorrTrack.
  *
- * Copyright 2018 Nicolas Bruot and CNRS
+ * Copyright 2018, 2020 Nicolas Bruot and CNRS
  * Copyright 2016-2018 Nicolas Bruot
  *
  *
@@ -315,11 +315,14 @@ void Movie::loadRawmMovie()
     pt::ptree ptFrames = getChild(pt, "movie_metadata.frames");
     for (auto it: ptFrames)
     {
-        uint64_t timestamp;
-        setXmlVar<uint64_t>(it.second, "<xmlattr>.timestamp", timestamp);
-        frameMetadata fm;
-        fm.timestamp = timestamp;
-        framesMeta.push_back(fm);
+        if (it.first == "frame")
+        {
+            uint64_t timestamp;
+            setXmlVar<uint64_t>(it.second, "<xmlattr>.timestamp", timestamp);
+            frameMetadata fm;
+            fm.timestamp = timestamp;
+            framesMeta.push_back(fm);
+        }
     }
 
     if (framesMeta.size() == 0)
