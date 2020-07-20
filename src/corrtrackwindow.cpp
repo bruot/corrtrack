@@ -1093,7 +1093,7 @@ void CorrTrackWindow::about()
         message.append(TARGET_VERSION);
         message.append(")");
     }
-    message.append("<br/><br/>Copyright (C) 2018-2019 Nicolas Bruot and CNRS<br/>"
+    message.append("<br/><br/>Copyright (C) 2018-2020 Nicolas Bruot and CNRS<br/>"
                    "Copyright (C) 2016-2018 Nicolas Bruot<br/><br/>"
                    "CorrTrack is released under the terms of the GNU General Public License (GPL) v3.<br/>"
                    "The source code is available at <a href=\"https://github.com/bruot/corrtrack/\">https://github.com/bruot/corrtrack/</a>.<br/><br/>"
