@@ -270,7 +270,7 @@ def alter_movie(input, output, begin, end, step, x, y, width, height):
 
     root = _get_rawm_tree(input + '.rawm')
     frames_tree = _get_elem(root, 'frames')
-    childs = frames_tree[:]
+    childs = frames_tree.findall('frame')
     i = len(childs) - 1
     for child in reversed(childs):
         if child.tag == 'frame':
