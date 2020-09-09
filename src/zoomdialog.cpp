@@ -22,6 +22,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QPushButton>
+#include "math.h"
 #include "constants.h"
 #include "zoomdialog.h"
 

@@ -154,7 +154,8 @@ void CorrFilterDialog::ok()
     int pos;
 
     pos = filterWindowWidthLE->cursorPosition();
-    if (filterWindowWidthLE->validator()->validate(filterWindowWidthLE->text(), pos) != QValidator::Acceptable)
+    QString widthStr(filterWindowWidthLE->text());
+    if (filterWindowWidthLE->validator()->validate(widthStr, pos) != QValidator::Acceptable)
     {
         msgBox->setText(QString("Filter width value outside acceptable range (1-%1).").arg(constants::FILTER_WIDTH_MAX_VALUE));
         msgBox->exec();
@@ -162,7 +163,8 @@ void CorrFilterDialog::ok()
     }
 
     pos = filterWindowHeightLE->cursorPosition();
-    if (filterWindowHeightLE->validator()->validate(filterWindowHeightLE->text(), pos) != QValidator::Acceptable)
+    QString heightStr(filterWindowHeightLE->text());
+    if (filterWindowHeightLE->validator()->validate(heightStr, pos) != QValidator::Acceptable)
     {
         msgBox->setText(QString("Filter height value outside acceptable range (1-%1).").arg(constants::FILTER_HEIGHT_MAX_VALUE));
         msgBox->exec();
@@ -170,7 +172,8 @@ void CorrFilterDialog::ok()
     }
 
     pos = fitRadiusLE->cursorPosition();
-    if (fitRadiusLE->validator()->validate(fitRadiusLE->text(), pos) != QValidator::Acceptable)
+    QString fitRadiusStr(fitRadiusLE->text());
+    if (fitRadiusLE->validator()->validate(fitRadiusStr, pos) != QValidator::Acceptable)
     {
         msgBox->setText(QString("Fit radius value outside acceptable range (0-%1).").arg(constants::FILTER_FIT_RADIUS_MAX_VALUE));
         msgBox->exec();

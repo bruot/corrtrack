@@ -207,7 +207,8 @@ void IntensityDialog::ok()
         int pos;
 
         pos = minLE->cursorPosition();
-        if (minLE->validator()->validate(minLE->text(), pos) != QValidator::Acceptable)
+        QString minLEStr(minLE->text());
+        if (minLE->validator()->validate(minLEStr, pos) != QValidator::Acceptable)
         {
             msgBox->setText(QString("Min intensity outside acceptable range (0-%1).").arg(constants::INTENSITY_MAX_VALUE));
             msgBox->exec();
@@ -215,7 +216,8 @@ void IntensityDialog::ok()
         }
 
         pos = maxLE->cursorPosition();
-        if (maxLE->validator()->validate(maxLE->text(), pos) != QValidator::Acceptable)
+        QString maxLEStr(maxLE->text());
+        if (maxLE->validator()->validate(maxLEStr, pos) != QValidator::Acceptable)
         {
             msgBox->setText(QString("Max intensity outside acceptable range (0-%1).").arg(constants::INTENSITY_MAX_VALUE));
             msgBox->exec();
@@ -223,7 +225,8 @@ void IntensityDialog::ok()
         }
 
         pos = bitDepthLE->cursorPosition();
-        if (bitDepthLE->validator()->validate(bitDepthLE->text(), pos) != QValidator::Acceptable)
+        QString bitDepthLEStr(bitDepthLE->text());
+        if (bitDepthLE->validator()->validate(bitDepthLEStr, pos) != QValidator::Acceptable)
         {
             msgBox->setText(QString("Bit depth outside acceptable range (%1-%2).").arg(constants::BIT_DEPTH_MIN_VALUE).arg(constants::BIT_DEPTH_MAX_VALUE));
             msgBox->exec();
